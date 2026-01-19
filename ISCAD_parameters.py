@@ -27,7 +27,7 @@ h_bar = 10 # bar height
 
 
 # Material parameters
-rho_s = 2.8e-08 # resistivity of slot aluminium
+rho_s = 2.65e-08 # resistivity of slot aluminium
 
 
 # Electrical parameters
