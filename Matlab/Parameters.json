@@ -1,0 +1,32 @@
+{
+  "machine": {
+    "Qs": 60,
+    "Qs_active": 60,
+    "p": 4,
+    "Qr": 70,
+    "ag": 0.5,
+    "l_stack": 250,
+    "r_o": 115,
+    "r_so": 86.5,
+    "r": 75,
+    "r_yoke": 45,
+    "w_slot": [3, 3.5],
+    "w_so": 1111,
+    "h_slot": 10,
+    "h_so": 1111,
+    "w_bar": [2, 2.5],
+    "w_bo": 1111,
+    "h_bar": 10
+  },
+  "material": {
+    "rho_s": 2.8e-08
+  },
+  "electrical": {
+    "Apk": 120,
+    "f": 25000
+  },
+  "analysis": {
+    "k": 13
+  },
+  "units": "SI (millimeters for dimensions, Amperes, Hertz, Ohm-meters)"
+}
