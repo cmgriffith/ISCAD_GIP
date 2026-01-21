@@ -30,6 +30,7 @@ classdef ISCAD_Coupled_Model < matlab.System
         % Derived parameters for internal use
         Rs_DC, Rr_DC
         L_ss, L_ls, L_lr
+        D_rotorbar
     
         InvL_LUT % 3D Matrix: [110 x 110 x Steps] Stores inv(L)
         G_LUT % 3D Matrix: [110 x 110 x Steps] Stores dL/dTheta
@@ -58,7 +59,7 @@ classdef ISCAD_Coupled_Model < matlab.System
             % Rotor (Assuming similar area scaling as analytical script)
             A_rotorbar = obj.h_slot * obj.w_slot(1) * obj.Qs / obj.Qr;
             obj.Rr_DC = obj.rho_s * obj.l_stack / A_rotorbar;
-            D_rotorbar = sqrt(4*A_rotorbar/(pi)); % Equivalent diamater of each rotor bar
+            obj.D_rotorbar = sqrt(4*A_rotorbar/(pi)); % Equivalent diamater of each rotor bar
             
             % Calculate Inductances
             % Self Inductance (Approximate Peak)
@@ -67,7 +68,7 @@ classdef ISCAD_Coupled_Model < matlab.System
             % Leakage Inductance (Only using fixed switching frequency)
             zeta_Ls = sqrt(pi*mu_0*obj.f_sw/obj.rho_s)*obj.h_slot;
             K_Ls = (3/(2*zeta_Ls))*(sinh(2*zeta_Ls)-sin(2*zeta_Ls))/(cosh(2*zeta_Ls)-cos(2*zeta_Ls));
-            zeta_Lr = sqrt(pi*mu_0*obj.f_sw/obj.rho_s)*D_rotorbar;
+            zeta_Lr = sqrt(pi*mu_0*obj.f_sw/obj.rho_s)*obj.D_rotorbar;
             K_Lr = (3/(2*zeta_Lr))*(sinh(2*zeta_Lr)-sin(2*zeta_Lr))/(cosh(2*zeta_Lr)-cos(2*zeta_Lr));
             
             lambda_slot = (obj.h_slot / (3*obj.w_slot(1))) + (obj.h_so / obj.w_so);
@@ -98,7 +99,7 @@ classdef ISCAD_Coupled_Model < matlab.System
             obj.Currents = zeros(obj.Qs + obj.Qr, 1);
             
             % 3. Pre Calculate LUTs
-            fprintf('Pre-calculating %d matrices', obj.Num_Steps);
+            %fprintf('Pre-calculating %d matrices', obj.Num_Steps);
             
             % Pre-allocate for speed
             N_sys = obj.Qs + obj.Qr;
@@ -156,7 +157,7 @@ classdef ISCAD_Coupled_Model < matlab.System
                 zeta_Rs = sqrt((pi * mu_0 * f_elec) ./ obj.rho_s) .* obj.h_slot;
                 K_Rs = zeta_Rs .* (sinh(2*zeta_Rs) + sin(2*zeta_Rs)) ./ (cosh(2*zeta_Rs) - cos(2*zeta_Rs));
                 
-                zeta_Rr = sqrt((pi*mu_0*obj.f)/obj.rho_s) * D_rotorbar; % Assumes circular cross section of rotor bars
+                zeta_Rr = sqrt((pi*mu_0*f_elec)/obj.rho_s) * obj.D_rotorbar; % Assumes circular cross section of rotor bars
                 K_Rr = zeta_Rr .* (sinh(2*zeta_Rr) + sin(2*zeta_Rr)) ./ (cosh(2*zeta_Rr) - cos(2*zeta_Rr));
             end
             Rs_AC = obj.Rs_DC .* K_Rs;
