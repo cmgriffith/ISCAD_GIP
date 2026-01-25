@@ -1,0 +1,38 @@
+{
+  "machine": {
+    "Qs": 60,
+    "Qs_active": 60,
+    "p": 4,
+    "Qr": 70,
+    "ag": 0.5e-3,
+    "l_stack": 250e-3,
+    "r_o": 115e-3,
+    "r_so": 86.5e-3,
+    "r": 75e-3,
+    "r_yoke": 45e-3,
+    "w_slot": [3e-3, 3.5e-3],
+    "w_so": 1111e-3,
+    "h_slot": 10e-3,
+    "h_so": 1111e-3,
+    "w_bar": [2e-3, 2.5e-3],
+    "w_bo": 1111e-3,
+    "h_bar": 10e-3
+  },
+  "material": {
+    "rho_s": 2.65e-08
+  },
+  "electrical": {
+    "Apk": 120,
+    "f": 1000
+  },
+  "power_electronics": {
+    "V_DC": 48,
+    "f_SW": 25000,
+    "V_DC_rip_max": 2.6,
+    "Apk": 140
+  },
+  "analysis": {
+    "k": 13
+  },
+  "units": "SI (meters for dimensions, Amperes, Hertz, Ohm-meters, Volts)"
+}

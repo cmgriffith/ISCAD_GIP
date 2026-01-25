@@ -1,5 +1,66 @@
 import femm
 import numpy as np
+import json
+
+
+class DotDict(dict):
+    """Dictionary subclass that allows dot notation access to nested keys"""
+# to flatten hierarchy, include
+# START
+    def __init__(self, data=None):
+        super().__init__()
+        if data:
+            flat = self._flatten_dict(data)
+            for k, v in flat.items():
+                self[k] = v
+
+    def _flatten_dict(self, d):
+        """Recursively flatten a nested dictionary"""
+        items = {}
+        for key, value in d.items():
+            if isinstance(value, dict):
+                items.update(self._flatten_dict(value))
+            elif isinstance(value, list): ###
+                items[key] = np.array(value) ###
+            else:
+                items[key] = value
+        return items
+# END        
+    def __getattr__(self, key):
+        try:
+            value = self[key]
+            # Recursively convert nested dicts to DotDict
+            if isinstance(value, dict):
+                return DotDict(value)
+            if isinstance(value, list):    ###      # safety net
+                value = np.array(value)###
+                self[key] = value          ###      # cache conversion
+            return value
+        except KeyError:
+            raise AttributeError(f"'DotDict' object has no attribute '{key}'")
+    
+    def __setattr__(self, key, value):
+        if isinstance(value, list): ###
+            value = np.array(value) ###
+        self[key] = value
+    
+    def __delattr__(self, key):
+        try:
+            del self[key]
+        except KeyError:
+            raise AttributeError(f"'DotDict' object has no attribute '{key}'")
+
+
+def loadjson(file):
+    # Read the JSON file
+    with open(file, 'r') as f:
+        data = json.load(f)
+    # Convert to DotDict for dot notation access
+    data = DotDict(data)
+    # Now you can access with dot notation
+    # print(data.machine.ag)  # Output: 0.0005
+    # print(type(data.machine.ag))  # Output: <class 'float'>
+    return data
 
 
 def FEMM_solve(step):
@@ -24,7 +85,7 @@ def FEMM_bitmap(step):
     print("saved bitmap to: ",path)
 
 
-def FEMM_currents(Qs,Qs_active,p,Apk,theta=0):
+def FEMM_currents(params,theta=0):
     # create Qs evenly spaced angles within 2pi range
     print("Assigning circuit currents...")
     phaseangle = np.arange(0,2*np.pi,1/Qs*2*np.pi) # TBC redundant calls...
@@ -35,19 +96,20 @@ def FEMM_currents(Qs,Qs_active,p,Apk,theta=0):
     for slot in range(0,Qs):
         if is_divisible(slot+1 , factor) == True:
             # print(slot, " is active slot")
-            Aph[slot] = Apk*np.sin( (phaseangle[slot] - theta) * pp )
+            print(theta, pp)
+            Aph[slot] = Apk*np.sin( (phaseangle[slot] - theta) * pp ) # round for fp precision fix
             femm.mi_setcurrent(str(slot),Aph[slot])
         else:
             # print(slot, " is inactive slot")
             Aph[slot] = 0
             femm.mi_setcurrent(str(slot),Aph[slot])
+        # print(Aph)
     return Aph
 
 
-def FEMM_data(parameters): # get data from FEMM solution
-    [Qs, Qr, p, l_stack, h_slot, w_slot, h_bar, w_bar, ag, r_o, r_so,
-     r, r_r, r_yoke] = parameters
-    # draw contour inside airgap
+def FEMM_contourplots(params): # get data from FEMM solution
+
+    # draw contour inside airgap, for MMF
     r_ag = r - ag/2
     femm.mo_seteditmode('contour')
     femm.mo_addcontour(0, r_ag)
@@ -62,6 +124,63 @@ def FEMM_data(parameters): # get data from FEMM solution
     B_ag = data[:,1]
     return B_ag
     # print(B_ag)
+
+def FEMM_integrals(params): # get data from FEMM solution
+    ### block integrals for inductances
+    # self inductance
+    print("SELF INDUCTANCE")
+    Ls_s = np.zeros(Qs)
+    sum = 0
+    for slot in range(0,Qs):
+        femm.mo_seteditmode('area')
+        femm.mo_groupselectblock(slot)
+        current,*_ = femm.mo_getcircuitproperties(str(slot))
+        if current != 0:
+            Ls_s[slot] = femm.mo_blockintegral(0) / (current**2) #p15 self inductance
+            sum += Ls_s[slot]
+            print("currrent ", current, "Ls_s ", Ls_s[slot], " sum ", sum)
+        femm.mo_clearblock()
+    Ls_s = sum / np.count_nonzero(Ls_s)
+    # mutual inductances
+    print("MUTUAL INDUCTANCE")
+    femm.mi_saveas("C:\\users\\chxps15\\My Documents\\UoBMechElec\\GIP\\ISCAD_FEMM.bak2\\backup.FEM")
+    current = np.zeros(Qs)
+    mutuals = np.zeros(Qs)
+    for slot in range(0,Qs): # stash circuit currents
+        current[slot],*_ = femm.mo_getcircuitproperties(str(slot))
+    for slot in range(1,Qs): # for each slot except 0th
+        for off in range(0,Qs):
+            femm.mi_setcurrent(str(off),0) # turn off all slots
+        if current[slot] != 0:
+            femm.mi_setcurrent(str(slot),current[slot]) # turn on the next slot
+            print("solving with slot ", slot, " only, with amps ", current[slot])
+
+            FEMM_solve(0)
+            femm.mi_loadsolution()
+            femm.mo_showdensityplot(1,0,3,0,"jmag") 
+            femm.mo_seteditmode('area')
+            femm.mo_groupselectblock(slot)
+            A = femm.mo_blockintegral(1) # A integral
+            a = femm.mo_blockintegral(5) # cross section area      
+
+            mutuals[slot] = 0.5/(current[slot]*a)*A
+            femm.mo_clearblock()
+        else:
+            print("skipping slot ", slot, " due to 0 current")
+
+    Ls_m = Ls_s + np.sum(np.absolute(mutuals[1:])) # first element is reference slot
+    print("mutuals = ", mutuals)
+
+    # revert to backup and show solution
+    femm.opendocument("C:\\users\\chxps15\\My Documents\\UoBMechElec\\GIP\\ISCAD_FEMM.bak2\\backup.FEM")
+    femm.mi_probdef(0,'meters','planar',1e-008, l_stack)
+    femm.mi_loadsolution()
+    femm.mo_hidepoints()
+    femm.mo_showdensityplot(1,0,1.8,0,"bmag") 
+    femm.mo_resize(1050,800)
+    femm.mo_zoomnatural()
+
+    return Ls_s, Ls_m
 
 
 def DFT(x, N_hmax):
@@ -87,14 +206,14 @@ def DFT(x, N_hmax):
 
 # create model with input parameters, assign block properties inc. coil, save to file
 # slots named clockwise by index number converted to string
-def FEMM_createmodel(parameters):
+def FEMM_createmodel(path,params):
+    globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
 
-    Qs, Qr, p, l_stack, h_slot, w_slot, h_bar, w_bar, ag, r_o, r_so, r, r_r, r_yoke = parameters
     # Initialises and defines model units, type, accuracy and length
     print("Opening FEMM...")
     femm.openfemm()
     femm.newdocument(0)
-    femm.mi_probdef(0,'millimeters','planar',1e-008, l_stack)
+    femm.mi_probdef(0,'meters','planar',1e-008, l_stack,10)
 
     # Function creates a FEMM model for a stator with 3 independent massive slots
     # non-periodic winding, whole stator modelled
@@ -128,36 +247,36 @@ def FEMM_createmodel(parameters):
     # set zero potential boundary at stator outer and yoke inner 
         # mi_setarcsegmentprop(maxsegdeg, ’propname’, hide, group)
     femm.mi_selectarcsegment(r_o,0)
-    femm.mi_setarcsegmentprop(1,'Zero',0,0)
+    femm.mi_setarcsegmentprop(1,'Zero',0,Qs+Qr+3)
     femm.mi_clearselected()
     femm.mi_selectarcsegment(-r_o,-1)
-    femm.mi_setarcsegmentprop(1,'Zero',0,0)
+    femm.mi_setarcsegmentprop(1,'Zero',0,Qs+Qr+3)
     femm.mi_clearselected()
     femm.mi_selectarcsegment(r_yoke,0)
-    femm.mi_setarcsegmentprop(1,'Zero',0,0)
+    femm.mi_setarcsegmentprop(1,'Zero',0,Qs+Qr+3)
     femm.mi_clearselected()
     femm.mi_selectarcsegment(-r_yoke,-1)
-    femm.mi_setarcsegmentprop(1,'Zero',0,0)
+    femm.mi_setarcsegmentprop(1,'Zero',0,Qs+Qr+3)
     femm.mi_clearselected()
     # Assigns statorsteel region
     femm.mi_addblocklabel(0,(r_o+r_so)/2) # Adds stator region block label
     femm.mi_selectlabel(0,(r_o+r_so)/2) # Selects label
-    femm.mi_setblockprop('M-15 Steel', 1, 0, 0, 0, 0, 0) # Sets region to magnetic steel
+    femm.mi_setblockprop('M-15 Steel', 1, 0, 0, 0, Qs+Qr, 0) # Sets region to magnetic steel
     femm.mi_clearselected()
     # Assigns airgap region
     femm.mi_addblocklabel(0, (r+r_r)/2) # Adds airgap region block label
     femm.mi_selectlabel(0, (r+r_r)/2) # Selects label
-    femm.mi_setblockprop('Air', 1, 0, 0, 0, 0, 0) # sets selected regions to air
+    femm.mi_setblockprop('Air', 1, 0, 0, 0, Qs+Qr+1, 0) # sets selected regions to air
     femm.mi_clearselected()
     # Assigns rotor steel region
     femm.mi_addblocklabel(0,(r_r+r_yoke)/2) # Adds stator region block label
     femm.mi_selectlabel(0,(r_r+r_yoke)/2) # Selects label
-    femm.mi_setblockprop('M-15 Steel', 1, 0, 0, 0, 0, 0) # Sets region to magnetic steel
+    femm.mi_setblockprop('M-15 Steel', 1, 0, 0, 0, Qs+Qr, 0) # Sets region to magnetic steel
     femm.mi_clearselected()
     # Assigns yoke zero boundary / no mesh
     femm.mi_addblocklabel((r_yoke)/2,0) # Adds airgap region block label
     femm.mi_selectlabel((r_yoke)/2,0) # Selects label
-    femm.mi_setblockprop('<No Mesh>', 1, 0, 0, 0, 0, 0) # sets selected regions to air
+    femm.mi_setblockprop('<No Mesh>', 1, 0, 0, 0, Qs+Qr+2, 0) # sets selected regions to air
     femm.mi_clearselected()
     
 
@@ -193,7 +312,7 @@ def FEMM_createmodel(parameters):
         femm.mi_selectlabel(x_centre,y_centre)
          # ’blockname’, automesh, meshsize, ’incircuit’, magdir, group, turns
         femm.mi_addcircprop(str(slot), 0, 0) # 0 = parallel connected flag.
-        femm.mi_setblockprop('Coil', 1, 0, str(slot), 0, 0, 0.5) # assign to circuit str(slot)
+        femm.mi_setblockprop('Coil', 1, 0, str(slot), 0, str(slot), 0.5) # assign to circuit str(slot)
         femm.mi_clearselected()
 
     # DRAW ROTOR BARS
@@ -222,16 +341,21 @@ def FEMM_createmodel(parameters):
         femm.mi_selectlabel(x_centre,y_centre)
          # ’blockname’, automesh, meshsize, ’incircuit’, magdir, group, turns
         # femm.mi_addcircprop(str(bar), 0, 0) # 0 = parallel connected flag.
-        femm.mi_setblockprop('Air', 1, 0, 0, 0, 0, 0) # assign to circuit str(slot)
+        femm.mi_setblockprop('Air', 1, 0, 0, 0, str(Qs+bar), 0) # assign to circuit str(slot)
         femm.mi_clearselected()
 
     femm.mi_zoomnatural() # Displays the model outline to fit window
     print("Done")
 
     # Saves model - note the directory file structure with '\\' replacing the normal '\'
-    filename = "ISCAD_FEMM.FEM"
-    directory = "C:\\users\\chxps15\\My Documents\\UoBMechElec\\GIP\\FEMM\\"
-    path = directory + filename
+    # filename = "ISCAD_FEMM.FEM"
+    # directory = "C:\\users\\chxps15\\My Documents\\UoBMechElec\\GIP\\FEMM\\"
+    # path = directory + filename
     femm.mi_saveas(path)
+
+    print("Steel in group ", Qs+Qr)
+    print("Air in group ", Qs+Qr+1)
+    print("NoMesh in group ", Qs+Qr+2)
+    print("Boundaries in group ", Qs+Qr+3)
 
     print("Model saved to: ",path)

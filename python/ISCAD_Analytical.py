@@ -1,42 +1,44 @@
 import numpy as np
 from scipy import constants as cons
+from functions import *
 # import matplotlib.pyplot as plt
-from ISCAD_parameters import *
-
 import warnings
 warnings.filterwarnings('ignore')
 
+# load parameters from .json
+file = 'ISCAD_parameters.json'
+params = loadjson(file)
+
+
 ### STATOR RESISTANCE
-Rs_DC = rho_s * l_stack / (h_slot * w_slot[0])
-zeta = ( (np.pi * cons.mu_0 * f) / rho_s )**0.5 * h_slot
-print("stator DC resistance = ", ("{:.2e}".format(Rs_DC)), "Ohm")
+Rs_DC = params.rho_s * params.l_stack / (params.h_slot * params.w_slot[0])
+zeta = ( (np.pi * cons.mu_0 * params.f) / params.rho_s )**0.5 * params.h_slot
+print("stator DC resistance = ", ("{:.3f}".format(Rs_DC*1e3)), "mOhm")
 K_R = zeta * (np.sinh(2*zeta) + np.sin(2*zeta)) / (np.cosh(2*zeta) - np.cos(2*zeta)) 
 Rs_AC = Rs_DC * K_R
-print("stator AC resistance = ", round(Rs_AC,1), "Ohm")
+print("stator AC resistance = ", ("{:.3f}".format(Rs_AC*1e3)), "mOhm")
 
 ### SELF INDUCTANCE
-
-Ls_s = np.pi/2 * cons.mu_0 * (r * l_stack / ag)
-print("self inductance = " , round(Ls_s,3), "H")
+Ls_s = np.pi/2 * cons.mu_0 * (params.r * params.l_stack / params.ag)
+print("self inductance = " , ("{:.3f}".format(Ls_s*1e3)), "mH")
 
 ### LEAKAGE INDUCTANCE
 # for DC current in rectangular slots
-lambda_slot = (h_slot / 3*w_slot[0]) + (h_so / w_so)
-Ls_sigma_DC = cons.mu_0 * l_stack * lambda_slot
-
+lambda_slot = (params.h_slot / 3*params.w_slot[0]) + (params.h_so / params.w_so)
+Ls_sigma_DC = cons.mu_0 * params.l_stack * lambda_slot
+print("DC leakage inductance = " ,  ("{:.3f}".format(Ls_sigma_DC*1e6)), "uH")
+# AC corrected to fundamental f
 K_L = 3 / (2*zeta) * (np.sinh(2*zeta) - np.sin(2*zeta)) / (np.cosh(2*zeta) - np.cos(2*zeta)) 
-Ls_sigma_AC = cons.mu_0 * l_stack * lambda_slot * K_L
-
-print("leakage inductance DC = " , round(Ls_sigma_DC,3), "H")
+Ls_sigma_AC = cons.mu_0 * params.l_stack * lambda_slot * K_L
+print("AC leakage inductance = " ,  ("{:.3f}".format(Ls_sigma_AC*1e6)), "uH")
 
 
 ### MAIN INDUCTANCE
 sum = 0
-for k in range(1,round(Qs/2/p + 1)):
-    sum = sum + np.cos( p * (k-1) * 2*np.pi / Qs)**2
+for k in range(1,round(params.Qs/2/params.p + 1)):
+    sum = sum + np.cos( params.p * (k-1) * 2*np.pi / params.Qs)**2
 Ls_m = Ls_s + sum
-
-print("main inductance = " , round(Ls_m,3), "H")
+print("main inductance = " ,  ("{:.3f}".format(Ls_m*1e3)), "mH")
 
 
 '''
@@ -79,4 +81,4 @@ V_DC_rip_max = 2.6
 Apk = 140 # [30s,330A] [5s,500A] 
 # -------------------------------------------------------
 
-C_DC_min = Apk / ( V_DC_rip_max * 2 * np.pi * f_SW )
+C_DC_min = Apk / ( params.V_DC_rip_max * 2 * np.pi * params.f_SW )
