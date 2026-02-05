@@ -1,6 +1,7 @@
 import femm
 import numpy as np
 import json
+from pathlib import Path
 
 
 class DotDict(dict):
@@ -53,7 +54,9 @@ class DotDict(dict):
 
 def loadjson(file):
     # Read the JSON file
-    with open(file, 'r') as f:
+    base_dir = Path(__file__).resolve().parent
+    file_path = base_dir / file
+    with open(file_path, 'r') as f:
         data = json.load(f)
     # Convert to DotDict for dot notation access
     data = DotDict(data)
@@ -63,7 +66,15 @@ def loadjson(file):
     return data
 
 
-def FEMM_solve(step):
+def derived_params(params):
+    globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
+    params.m = Qs/p # phase count, also slots per pole pair
+    params.r_r = r - ag # rotor radius [mm]
+    params.phaseangles = np.arange(0,2*np.pi,Qs)
+    globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
+
+
+def FEMM_solve(step=0):
     # Save, analyze
     print("solving model...")
     femm.mi_analyze(0)
@@ -74,20 +85,19 @@ def FEMM_solve(step):
     # prepare for screenshot
     femm.mo_resize(1050,800)
     femm.mo_zoomnatural()
-    print("solved: ",step)
+    # print("solved: ",step)
 
 
-def FEMM_bitmap(step):
-    filename = "bitmap_" + str(step)
-    directory = "C:\\users\\chxps15\\My Documents\\UoBMechElec\\GIP\\FEMM\\"
-    path = directory + filename
+def FEMM_bitmap(path, step):
+    path = path[0] + path[1]
     femm.mo_savebitmap(path)
     print("saved bitmap to: ",path)
 
 
 def FEMM_currents(params,theta=0):
     # create Qs evenly spaced angles within 2pi range
-    print("Assigning circuit currents...")
+    print(Apk)
+    print("Assigning sinusoidally distributed slot currents with Apk=", Apk ," A ...")
     phaseangle = np.arange(0,2*np.pi,1/Qs*2*np.pi) # TBC redundant calls...
     Aph = np.zeros(Qs) # TBC redundant calls...
     factor = Qs / Qs_active
@@ -96,19 +106,16 @@ def FEMM_currents(params,theta=0):
     for slot in range(0,Qs):
         if is_divisible(slot+1 , factor) == True:
             # print(slot, " is active slot")
-            print(theta, pp)
             Aph[slot] = Apk*np.sin( (phaseangle[slot] - theta) * pp ) # round for fp precision fix
             femm.mi_setcurrent(str(slot),Aph[slot])
         else:
             # print(slot, " is inactive slot")
             Aph[slot] = 0
             femm.mi_setcurrent(str(slot),Aph[slot])
-        # print(Aph)
     return Aph
 
 
 def FEMM_contourplots(params): # get data from FEMM solution
-
     # draw contour inside airgap, for MMF
     r_ag = r - ag/2
     femm.mo_seteditmode('contour')
@@ -125,62 +132,65 @@ def FEMM_contourplots(params): # get data from FEMM solution
     return B_ag
     # print(B_ag)
 
-def FEMM_integrals(params): # get data from FEMM solution
+def FEMM_integrals(path,params): # get data from FEMM solution
     ### block integrals for inductances
-    # self inductance
-    print("SELF INDUCTANCE")
-    Ls_s = np.zeros(Qs)
-    sum = 0
-    for slot in range(0,Qs):
+    
+
+    # PREPARE for single slot activation solve
+
+    # save file incase femm.mi_analyze(0) does not save solution to file?
+    # femm.mi_saveas(path[0]+path[1]+"_singleslot")
+    # femm.opendocument("".join(path))
+    # femm.newdocument(0)
+    # femm.mi_probdef(0,'meters','planar',1e-008, l_stack,10)
+
+    for off in range(0,Qs):
+        femm.mi_setcurrent(str(off),0) # turn off all slots
+    Aph = np.float64(Apk)
+    femm.mi_setcurrent(str(Qs-1),Aph) # energize last 1 only
+    
+    print("Solving for a single active slot with Aph=", Aph , "A ...")
+    FEMM_solve(0)
+    # femm.mi_loadsolution()
+    femm.mo_showdensityplot(1,0,3,0,"jmag") 
+    currents = np.zeros(Qs)
+
+    for slot in range(0,Qs): ###
+        currents[slot],*_ = femm.mo_getcircuitproperties(str(slot))
+    print("currents ", currents)
+
+    # SELF INDUCTANCE
+    femm.mo_seteditmode('area')
+    femm.mo_groupselectblock(str(Qs-1))
+    AJ = femm.mo_blockintegral(0)
+    femm.mo_clearblock()
+    current,*_ = femm.mo_getcircuitproperties(str(Qs-1))
+    Ls_s = AJ / (current**2)
+
+    # MUTUAL INDUCTANCE
+    mutuals = np.zeros(Qs-1) # contains all but last slot
+    for slot in range(0,Qs-1): # for each inactive slot aka. second slot onwards
         femm.mo_seteditmode('area')
         femm.mo_groupselectblock(slot)
-        current,*_ = femm.mo_getcircuitproperties(str(slot))
-        if current != 0:
-            Ls_s[slot] = femm.mo_blockintegral(0) / (current**2) #p15 self inductance
-            sum += Ls_s[slot]
-            print("currrent ", current, "Ls_s ", Ls_s[slot], " sum ", sum)
+        A = femm.mo_blockintegral(1) # A integral
+        a = femm.mo_blockintegral(5) # cross section area
         femm.mo_clearblock()
-    Ls_s = sum / np.count_nonzero(Ls_s)
-    # mutual inductances
-    print("MUTUAL INDUCTANCE")
-    femm.mi_saveas("C:\\users\\chxps15\\My Documents\\UoBMechElec\\GIP\\ISCAD_FEMM.bak2\\backup.FEM")
-    current = np.zeros(Qs)
-    mutuals = np.zeros(Qs)
-    for slot in range(0,Qs): # stash circuit currents
-        current[slot],*_ = femm.mo_getcircuitproperties(str(slot))
-    for slot in range(1,Qs): # for each slot except 0th
-        for off in range(0,Qs):
-            femm.mi_setcurrent(str(off),0) # turn off all slots
-        if current[slot] != 0:
-            femm.mi_setcurrent(str(slot),current[slot]) # turn on the next slot
-            print("solving with slot ", slot, " only, with amps ", current[slot])
+        mutuals[slot] = (n/(Aph*a)) * A
 
-            FEMM_solve(0)
-            femm.mi_loadsolution()
-            femm.mo_showdensityplot(1,0,3,0,"jmag") 
-            femm.mo_seteditmode('area')
-            femm.mo_groupselectblock(slot)
-            A = femm.mo_blockintegral(1) # A integral
-            a = femm.mo_blockintegral(5) # cross section area      
-
-            mutuals[slot] = 0.5/(current[slot]*a)*A
-            femm.mo_clearblock()
-        else:
-            print("skipping slot ", slot, " due to 0 current")
-
-    Ls_m = Ls_s + np.sum(np.absolute(mutuals[1:])) # first element is reference slot
+    Ls_m = Ls_s + np.sum(np.absolute(mutuals)) # first element is reference slot
     print("mutuals = ", mutuals)
 
     # revert to backup and show solution
-    femm.opendocument("C:\\users\\chxps15\\My Documents\\UoBMechElec\\GIP\\ISCAD_FEMM.bak2\\backup.FEM")
-    femm.mi_probdef(0,'meters','planar',1e-008, l_stack)
-    femm.mi_loadsolution()
-    femm.mo_hidepoints()
-    femm.mo_showdensityplot(1,0,1.8,0,"bmag") 
+    # femm.mi_saveas(path[0]+"ISCAD_FEMM_singleslot")
+    # femm.opendocument("".join(path))
+    # femm.mi_probdef(0,'meters','planar',1e-008, l_stack)
+    # femm.mi_loadsolution()
+    # femm.mo_hidepoints()
+    # femm.mo_showdensityplot(1,0,1.8,0,"bmag") 
     femm.mo_resize(1050,800)
     femm.mo_zoomnatural()
 
-    return Ls_s, Ls_m
+    return Ls_s, Ls_m, mutuals
 
 
 def DFT(x, N_hmax):
@@ -207,8 +217,6 @@ def DFT(x, N_hmax):
 # create model with input parameters, assign block properties inc. coil, save to file
 # slots named clockwise by index number converted to string
 def FEMM_createmodel(path,params):
-    globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
-
     # Initialises and defines model units, type, accuracy and length
     print("Opening FEMM...")
     femm.openfemm()
@@ -246,19 +254,19 @@ def FEMM_createmodel(path,params):
     femm.mi_addarc(-r_o,0,r_o,0,180,1)
     # set zero potential boundary at stator outer and yoke inner 
         # mi_setarcsegmentprop(maxsegdeg, ’propname’, hide, group)
-    femm.mi_selectarcsegment(r_o,0)
+    femm.mi_selectarcsegment(r_o,1e-3)
     femm.mi_setarcsegmentprop(1,'Zero',0,Qs+Qr+3)
     femm.mi_clearselected()
-    femm.mi_selectarcsegment(-r_o,-1)
+    femm.mi_selectarcsegment(-r_o,-1e-3)
     femm.mi_setarcsegmentprop(1,'Zero',0,Qs+Qr+3)
     femm.mi_clearselected()
-    femm.mi_selectarcsegment(r_yoke,0)
+    femm.mi_selectarcsegment(r_yoke,1e-3)
     femm.mi_setarcsegmentprop(1,'Zero',0,Qs+Qr+3)
     femm.mi_clearselected()
-    femm.mi_selectarcsegment(-r_yoke,-1)
+    femm.mi_selectarcsegment(-r_yoke,-1e-3)
     femm.mi_setarcsegmentprop(1,'Zero',0,Qs+Qr+3)
     femm.mi_clearselected()
-    # Assigns statorsteel region
+    # Assigns stator steel region
     femm.mi_addblocklabel(0,(r_o+r_so)/2) # Adds stator region block label
     femm.mi_selectlabel(0,(r_o+r_so)/2) # Selects label
     femm.mi_setblockprop('M-15 Steel', 1, 0, 0, 0, Qs+Qr, 0) # Sets region to magnetic steel
@@ -345,17 +353,14 @@ def FEMM_createmodel(path,params):
         femm.mi_clearselected()
 
     femm.mi_zoomnatural() # Displays the model outline to fit window
-    print("Done")
 
     # Saves model - note the directory file structure with '\\' replacing the normal '\'
-    # filename = "ISCAD_FEMM.FEM"
-    # directory = "C:\\users\\chxps15\\My Documents\\UoBMechElec\\GIP\\FEMM\\"
-    # path = directory + filename
-    femm.mi_saveas(path)
-
+    femm.mi_saveas("".join(path))
+    print("Done. FEMM Info:")
+    print("------")
     print("Steel in group ", Qs+Qr)
     print("Air in group ", Qs+Qr+1)
     print("NoMesh in group ", Qs+Qr+2)
     print("Boundaries in group ", Qs+Qr+3)
-
-    print("Model saved to: ",path)
+    print("Model saved to: ","".join(path))
+    print("------")

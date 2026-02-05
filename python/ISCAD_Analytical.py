@@ -1,8 +1,8 @@
 import numpy as np
 from scipy import constants as cons
-from functions import *
-# import matplotlib.pyplot as plt
 import warnings
+import matplotlib.pyplot as plt
+from functions import *
 warnings.filterwarnings('ignore')
 
 # load parameters from .json
@@ -35,10 +35,31 @@ print("AC leakage inductance = " ,  ("{:.3f}".format(Ls_sigma_AC*1e6)), "uH")
 
 ### MAIN INDUCTANCE
 sum = 0
+mutuals = np.zeros(round(params.Qs/2/params.p + 1))
 for k in range(1,round(params.Qs/2/params.p + 1)):
-    sum = sum + np.cos( params.p * (k-1) * 2*np.pi / params.Qs)**2
-Ls_m = Ls_s + sum
+    linkage = np.cos( params.p * (k-1) * 2*np.pi / params.Qs)**2
+    mutuals[k] = linkage
+    sum = sum + linkage
+Ls_m = Ls_s * sum
 print("main inductance = " ,  ("{:.3f}".format(Ls_m*1e3)), "mH")
+
+print("------")
+print("stator slot count: ", params.Qs)
+print("pole count: ", params.p)
+print("number of slots summed for main L: ", round(params.Qs/2/params.p + 1))
+print("analytical self inductance sum result: ", sum)
+print("analytical linkage coeffs: ", linkage)
+print("mutuals array size: ", np.shape(mutuals))
+
+
+
+sumslots = np.arange(1,round(params.Qs/2/params.p + 1))
+figure1 = plt.figure()
+axes1 = figure1.add_subplot(1, 1, 1)
+axes1.plot(sumslots, Ls_s*mutuals[1:])
+plt.xlabel("Qs Slot Number")
+plt.ylabel("Mutual Inductance")
+plt.show()
 
 
 '''

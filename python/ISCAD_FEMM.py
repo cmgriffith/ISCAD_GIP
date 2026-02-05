@@ -1,38 +1,29 @@
 import femm
 import numpy as np
+import os ###
 import subprocess
 from functions import *
 from plots import *
 
-# load parameters from .json
-file = 'ISCAD_parameters.json'
-params = loadjson(file)
-
-globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
-
-
 # Runtime Controls , Boolean
 CreateModel = 1
-Solve = 1
-Analyze = 1
-CycleRender = 0
+Solve = 0 # solve full machine field
+Analyze = 0 # solve for ag flux, integrals
+Plots = 0 # show analysis plots
+CycleRender = 0 # render an animation
 
 # FILES
 filename = "ISCAD_FEMM.FEM"
-directory = "C:\\users\\chxps15\\My Documents\\UoBMechElec\\GIP\\ISCAD_FEMM.bak2\\"
-path = directory + filename
+directory = "C:\\users\\chxps15\\My Documents\\UoBMechElec\\GIP\\ISCAD_GIP\\python\\FEMM output\\"
+# path = (directory + filename)
+path = (directory, filename)
 bpr = 25 # bitmaps per rotation, if CycleRender == True
 
-
-# derived parameters
-params.m = Qs/p # phase count, also slots per pole pair
-params.r_r = r - ag # rotor radius [mm]
-params.phaseangles = np.arange(0,2*np.pi,Qs)
-
-# parameters = [Qs, Qr, p, l_stack, h_slot, w_slot, h_bar, w_bar, ag, 
-# r_o, r_so, r, r_r, r_yoke]
-
-
+# load parameters from .json
+file = 'ISCAD_parameters.json'
+params = loadjson(file)
+derived_params(params) # add derived values to params
+globals().update(params) # update params in current python file 
 
 # create FEMM model
 if CreateModel == True:
@@ -52,6 +43,18 @@ else:
 '''   
 
 
+# compute inductances
+Ls_s, Ls_m, mutuals = FEMM_integrals(path,params)
+
+# print results
+plot_mutuals(Qs, mutuals)
+print("NUMERICAL RESULTS...")
+print("self inductance = " ,  ("{:.3f}".format(Ls_s*1e3)), "mH")
+print("main inductance = " ,  ("{:.3f}".format(Ls_m*1e3)), "mH")
+print("ANALYTICAL RESULTS...")
+subprocess.run(["python3", "python/ISCAD_Analytical.py"])
+
+
 if Solve == True:
     Aph = FEMM_currents(params)
     FEMM_solve(0)
@@ -60,37 +63,45 @@ elif CycleRender == True:
     for step in range(0,bpr):
         FEMM_currents(Apk, theta[step])
         FEMM_solve(step)
-        FEMM_bitmap(step)
+        FEMM_bitmap(path,step)
 else:
-    print("No solve requested.")
+    print("No full machine solve was requested.")
     # quit()
 
-
 if Analyze == True:
-    print("Loading solution.")
+    if Solve != True: # ensure model has been solved
+        # Aph = FEMM_currents(params)
+        # FEMM_solve(path,0)
+        print("")
+    print("Analysing...")
     femm.mi_loadsolution()
-    # View results
+    # View results and prepare for screenshot
     femm.mo_hidepoints()
     femm.mo_showdensityplot(1,0,1.8,0,"bmag") 
-    # prepare for screenshot
     femm.mo_resize(1050,800)
     femm.mo_zoomnatural()
-    B_ag = FEMM_contourplots(params) # get data from FEMM solution
+
+    # get airgap flux from FEMM solution
+    B_ag = FEMM_contourplots(params)
     Bg_k = DFT(B_ag,k)
+    print("Airgap flux extracted")
 
-    Ls_s, Ls_m = FEMM_integrals(params)
+    # compute inductances
+    Ls_s, Ls_m, mutuals = FEMM_integrals(path,params)
 
+    # print results
     print("Numerical results...")
     print("self inductance = " ,  ("{:.3f}".format(Ls_s*1e3)), "mH")
     print("main inductance = " ,  ("{:.3f}".format(Ls_m*1e3)), "mH")
-
     print("Analytical results...")
     subprocess.run(["python3", "ISCAD_Analytical.py"])
-
-    plot_B(B_ag)
-    plot_DFT(Bg_k)
-    Aph = FEMM_currents(params)
-    plot_Aph(Aph)
+    # show plots
+    if Plots == 1:
+        #plot_B(B_ag)
+        #plot_DFT(Bg_k)
+        #Aph = FEMM_currents(params)
+        #plot_Aph(Aph)
+        plot_mutuals(mutuals)
 
 
 '''

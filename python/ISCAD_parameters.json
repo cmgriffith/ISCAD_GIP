@@ -1,9 +1,10 @@
 {
   "machine": {
-    "Qs": 60,
+    "Qs":60,
     "Qs_active": 60,
-    "p": 4,
-    "Qr": 70,
+    "p": 0.5,
+    "n": 1,
+    "Qr": 60,
     "ag": 0.5e-3,
     "l_stack": 250e-3,
     "r_o": 115e-3,
@@ -22,7 +23,7 @@
     "rho_s": 2.65e-08
   },
   "electrical": {
-    "Apk": 120,
+    "Apke": 120,
     "f": 1000
   },
   "power_electronics": {

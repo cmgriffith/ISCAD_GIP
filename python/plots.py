@@ -15,8 +15,9 @@ def plot_B(B_ag): # plot airgap flux
     # axes1.plot(Elect_angle, np.real(Bg_k[0] * np.exp(np.arange(0, N) * 2j * np.pi / (N - 1))))
     plt.xlabel("Angle [deg]")
     plt.ylabel("Flux density [T]")
-    plt.savefig("B airgap.png", transparent=None)
     plt.show()
+
+    plt.savefig("B airgap.png", transparent=None)
 
 
 def plot_DFT(Bg_k):
@@ -28,8 +29,9 @@ def plot_DFT(Bg_k):
     plt.bar(range(1,len(Bg_k)+1), np.abs(Bg_k)) # 0 to 12, want 1 to 13
     plt.xlabel("Harmonic Order")
     plt.ylabel("Magnitude [T]")
-    plt.savefig("B spectrum.png", transparent=None)
     plt.show()
+
+    plt.savefig("B spectrum.png", transparent=None)
 
 
 def plot_Aph(Aph):
@@ -40,5 +42,16 @@ def plot_Aph(Aph):
     plt.bar(np.arange(0,len(Aph)), Aph)
     plt.xlabel("Qs Slot Number")
     plt.ylabel("Current [A]")
+    plt.show()
+    
     plt.savefig("Qs currents.png", transparent=None)
+
+
+def plot_mutuals(Qs, mutuals):
+    Qs = np.arange(0,Qs-1)
+    figure4 = plt.figure()
+    axes4 = figure4.add_subplot(1, 1, 1)
+    axes4.plot(Qs, mutuals)
+    plt.xlabel("Qs Slot Number")
+    plt.ylabel("Current [A]")
     plt.show()
