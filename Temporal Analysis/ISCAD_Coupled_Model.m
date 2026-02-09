@@ -26,9 +26,9 @@ classdef ISCAD_Coupled_Model < matlab.System
         Ts = 1e-6;  % Step time
     end
 
-    properties (Access = private)
+    properties (SetAccess = protected, GetAccess = public)
         % Derived parameters for internal use
-        Rs_DC, Rr_DC
+        Rs_DC, Rr_DC, D_rotorbar
         L_ss, L_ls, L_lr
     
         InvL_LUT % 3D Matrix: [110 x 110 x Steps] Stores inv(L)
@@ -37,10 +37,6 @@ classdef ISCAD_Coupled_Model < matlab.System
         
         d_theta   % Step size of the LUT (radians)
         Num_Steps % Number of steps in 360 degrees
-    end
-
-    properties(DiscreteState)
-        Currents 
     end
 
     methods(Access = protected)
@@ -58,7 +54,7 @@ classdef ISCAD_Coupled_Model < matlab.System
             % Rotor (Assuming similar area scaling as analytical script)
             A_rotorbar = obj.h_slot * obj.w_slot(1) * obj.Qs / obj.Qr;
             obj.Rr_DC = obj.rho_s * obj.l_stack / A_rotorbar;
-            D_rotorbar = sqrt(4*A_rotorbar/(pi)); % Equivalent diamater of each rotor bar
+            obj.D_rotorbar = sqrt(4*A_rotorbar/(pi)); % Equivalent diamater of each rotor bar
             
             % Calculate Inductances
             % Self Inductance (Approximate Peak)
@@ -67,12 +63,12 @@ classdef ISCAD_Coupled_Model < matlab.System
             % Leakage Inductance (Only using fixed switching frequency)
             zeta_Ls = sqrt(pi*mu_0*obj.f_sw/obj.rho_s)*obj.h_slot;
             K_Ls = (3/(2*zeta_Ls))*(sinh(2*zeta_Ls)-sin(2*zeta_Ls))/(cosh(2*zeta_Ls)-cos(2*zeta_Ls));
-            zeta_Lr = sqrt(pi*mu_0*obj.f_sw/obj.rho_s)*D_rotorbar;
+            zeta_Lr = sqrt(pi*mu_0*obj.f_sw/obj.rho_s)*obj.D_rotorbar;
             K_Lr = (3/(2*zeta_Lr))*(sinh(2*zeta_Lr)-sin(2*zeta_Lr))/(cosh(2*zeta_Lr)-cos(2*zeta_Lr));
             
             lambda_slot = (obj.h_slot / (3*obj.w_slot(1))) + (obj.h_so / obj.w_so);
-            obj.L_ls = mu_0 * obj.l_stack * lambda_slot;
-            obj.L_lr = obj.L_ls; % Assumption for rotor
+            obj.L_ls = (mu_0 * obj.l_stack * lambda_slot)*K_Ls;
+            obj.L_lr = obj.L_ls; % Assumption of equal leakage in rotor and stator (improve in future when rotor is fully defined)
             
             % Local vars for LUT generation
             L_ss = obj.L_ss;
@@ -94,11 +90,8 @@ classdef ISCAD_Coupled_Model < matlab.System
             obj.Num_Steps = round(360 / step_deg);
             obj.d_theta = deg2rad(step_deg);
             
-            % Initialise State
-            obj.Currents = zeros(obj.Qs + obj.Qr, 1);
-            
             % 3. Pre Calculate LUTs
-            fprintf('Pre-calculating %d matrices', obj.Num_Steps);
+            %fprintf('Pre-calculating %d matrices', obj.Num_Steps);
             
             % Pre-allocate for speed
             N_sys = obj.Qs + obj.Qr;
@@ -111,26 +104,45 @@ classdef ISCAD_Coupled_Model < matlab.System
             
             for k = 1:obj.Num_Steps
                 theta = (k-1) * obj.d_theta;
+                as_grid = as_base;
+                ar_grid = ar_base + theta;
                 
                 % Build L(theta)
-                % Stator-Stator (Fixed)
-                Lss = L_ss * cos(as_base - as_base') + eye(obj.Qs)*L_ls;
+                % Stator-Stator Mutual Inductance (Triangle Waveform)
+                % Due to the integration of the square mmf waveform wrt
+                % angle. 
+                diff_ss = mod(as_grid - as_grid' + pi, 2*pi) - pi; % Wraps to -pi:pi
                 
-                % Rotor-Rotor (Fixed in Rotor Frame)
-                Lrr = L_ss * cos(ar_base - ar_base') + eye(obj.Qr)*L_lr;
+                Lss_mut = L_ss*(1-2*abs(diff_ss)/pi); % Stator-stator mutual inductance using triangular approximation, can be improved
+                Lss = Lss_mut;
+
+                % Add stator leakage inductance to diagonal
+                Lss(1:obj.Qs+1:end) = Lss(1:obj.Qs+1:end) + L_ls;
                 
-                % Mutual (Varies with Theta)
+                % Rotor-Rotor (Fixed in Rotor Frame) (repeated process from
+                % stator)
+                diff_rr = mod(ar_grid - ar_grid' + pi, 2*pi) - pi;
+                % Rotor-Rotor magnetising inductance is identical to stator
+                % as described in ISCAD literature:
+                Lrr_mut = L_ss * (1 - 2*abs(diff_rr)/pi); 
+                Lrr = Lrr_mut;
+                % Different leakage inductance is accounted for between
+                % stator and rotor:
+                Lrr(1:obj.Qr+1:end) = Lrr(1:obj.Qr+1:end) + L_lr; 
+                
+                % Mutual Inductance between Stator-Rotor (Varies with Theta)
                 % Angle diff = StatorAngle - (RotorAngle + Theta)
-                ar_now = ar_base + theta;
-                angle_sr = as_base - ar_now';
-                Msr = L_ss * cos(angle_sr);
+                diff_sr = mod(as_grid-ar_grid' + pi, 2*pi) - pi;
+                Msr = L_ss*(1-2*abs(diff_sr)/pi);
                 
-                % Assemble L
+                % Assemble inductance matrix
                 L_mat = [Lss, Msr; Msr', Lrr];
                 
-                % Build G(theta) = dL/dTheta
-                % Only Msr changes with theta. d/dTheta(cos(a - theta)) = sin(a - theta)
-                dMsr = L_ss * sin(angle_sr);
+                % Differentiate Coupling Matrix
+                % Derivative of this triangle inductance wave is a square
+                % wave. Sign depends on direction.
+                % Only Msr changes with theta.
+                dMsr = L_ss * (2/pi) * sign(diff_sr);
                 G_mat = [zeros(obj.Qs), dMsr; dMsr', zeros(obj.Qr)];
                 
                 % Store in LUT
@@ -141,7 +153,7 @@ classdef ISCAD_Coupled_Model < matlab.System
             fprintf('Done.\n');
         end
         
-        function [I_stator, Torque] = stepImpl(obj, V_stator, Theta, Omega, f_elec)
+        function [dIdt, Torque] = stepImpl(obj, V_stator, I_feedback, Theta, Omega, f_elec)
             Qs = obj.Qs;
             Qr = obj.Qr;
             
@@ -156,7 +168,7 @@ classdef ISCAD_Coupled_Model < matlab.System
                 zeta_Rs = sqrt((pi * mu_0 * f_elec) ./ obj.rho_s) .* obj.h_slot;
                 K_Rs = zeta_Rs .* (sinh(2*zeta_Rs) + sin(2*zeta_Rs)) ./ (cosh(2*zeta_Rs) - cos(2*zeta_Rs));
                 
-                zeta_Rr = sqrt((pi*mu_0*obj.f)/obj.rho_s) * D_rotorbar; % Assumes circular cross section of rotor bars
+                zeta_Rr = sqrt((pi*mu_0*f_elec)/obj.rho_s) * obj.D_rotorbar; % Assumes circular cross section of rotor bars
                 K_Rr = zeta_Rr .* (sinh(2*zeta_Rr) + sin(2*zeta_Rr)) ./ (cosh(2*zeta_Rr) - cos(2*zeta_Rr));
             end
             Rs_AC = obj.Rs_DC .* K_Rs;
@@ -194,7 +206,7 @@ classdef ISCAD_Coupled_Model < matlab.System
             obj.R_Matrix = diag(R_vec);
             
             % 5. Solve Dynamics
-            I = obj.Currents;
+            I = I_feedback;
             V = [V_stator; zeros(Qr, 1)];
             
             % dI/dt = InvL * (V - R*I - w*G*I)
@@ -206,35 +218,15 @@ classdef ISCAD_Coupled_Model < matlab.System
             
             dIdt = InvL * Voltage_Sum;
             
-            % 6. Update State
-            I_new = I + dIdt * obj.Ts;
-            obj.Currents = I_new;
-            
-            % 7. Output results
+            % 6. Output results
             Torque = 0.5 * I' * G * I;
-            I_stator = I_new(1:Qs);
-        end
-
-        function resetImpl(obj)
-            % Reset with sizes from mparams if available, else property defaults
-            % Easier to just query current state size
-            obj.Currents = zeros(size(obj.Currents));
         end
         
-        %% Discrete State Specification
-        function [sz, dt, cp] = getDiscreteStateSpecificationImpl(obj, name)
-            % Specify size, data type, and complexity of discrete state
-            if strcmp(name, 'Currents')
-                sz = [obj.Qs + obj.Qr, 1];  % [110 x 1]
-                dt = 'double';
-                cp = false;  % real, not complex
-            end
-        end
 
         %% Define output sizes and types
         function [sz1, sz2] = getOutputSizeImpl(obj)
-            % Output 1: I_stator is [Qs x 1] = [60 x 1]
-            sz1 = [obj.Qs, 1];
+            % Output 1: dIdt is [Qs + Qr, 1] (Full State Derivative)
+            sz1 = [obj.Qs + obj.Qr, 1]; 
             % Output 2: Torque is scalar [1 x 1]
             sz2 = [1, 1];
         end
