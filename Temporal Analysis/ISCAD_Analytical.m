@@ -8,7 +8,9 @@ mparams = load_json_parameters('../ISCAD_parameters.json');
 
 % Constants
 mu_0 = 4*pi*1e-7; % Permeability of free space [H/m]
-f_r = 100; % Rotor Speed
+f_r = 0; % Rotor Speed
+mparams.p = 2;
+Vs_rms = 0.03; % Desired stator voltage input (RMS)
 
 %% RESISTANCES
 % Use mparams.variable_name syntax
