@@ -68,12 +68,12 @@ def loadjson(file):
     return data
 
 
-def derived_params(params):
-    globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
-    params.m = Qs/p # phase count, also slots per pole pair
-    params.r_r = r - ag # rotor radius [mm]
-    params.phaseangles = np.arange(0,2*np.pi,Qs)
-    globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
+# def derived_params(params):
+#     globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
+#     params.m = Qs/p # phase count, also slots per pole pair
+#     params.r_r = r - ag # rotor radius [mm]
+#     params.phaseangles = np.arange(0,2*np.pi,Qs)
+#     globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
 
 
 def FEMM_solve(step=0):

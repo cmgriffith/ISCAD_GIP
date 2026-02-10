@@ -22,6 +22,12 @@ bpr = 25 # bitmaps per rotation, if CycleRender == True
 # load parameters from .json
 file = 'ISCAD_parameters.json'
 params = loadjson(file)
+def derived_params(params):
+    globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
+    params.m = Qs/p # phase count, also slots per pole pair
+    params.r_r = r - ag # rotor radius [mm]
+    params.phaseangles = np.arange(0,2*np.pi,Qs)
+    globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
 derived_params(params) # add derived values to params
 globals().update(params) # update params in current python file 
 
