@@ -102,11 +102,11 @@ def FEMM_currents(params,theta=0):
     Aph = np.zeros(Qs) # TBC redundant calls...
     factor = Qs / Qs_active
     is_divisible = lambda dividend, divisor : dividend % divisor == 0
-    pp = p / 2 # pole pairs
+    poles = p / 2 # poles poles
     for slot in range(0,Qs):
         if is_divisible(slot+1 , factor) == True:
             # print(slot, " is active slot")
-            Aph[slot] = Apk*np.sin( (phaseangle[slot] - theta) * pp ) # round for fp precision fix
+            Aph[slot] = Apk*np.sin( (phaseangle[slot] - theta) * p ) # round for fp precision fix
             femm.mi_setcurrent(str(slot),Aph[slot])
         else:
             # print(slot, " is inactive slot")

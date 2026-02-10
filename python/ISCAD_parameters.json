@@ -2,7 +2,7 @@
   "machine": {
     "Qs":60,
     "Qs_active": 60,
-    "p": 0.5,
+    "p": 2,
     "n": 1,
     "Qr": 60,
     "ag": 0.5e-3,
@@ -24,7 +24,7 @@
   },
   "electrical": {
     "Apke": 120,
-    "f": 1000
+    "f": 500
   },
   "power_electronics": {
     "V_DC": 48,

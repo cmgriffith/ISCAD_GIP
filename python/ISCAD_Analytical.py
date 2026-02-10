@@ -1,9 +1,13 @@
 import numpy as np
 from scipy import constants as cons
-import warnings
-import matplotlib.pyplot as plt
+# import warnings
 from functions import *
-warnings.filterwarnings('ignore')
+# warnings.filterwarnings('ignore')
+
+import matplotlib
+matplotlib.use('TkAgg')  # or 'TkAgg'
+import matplotlib.pyplot as plt
+from matplotlib.ticker import FormatStrFormatter
 
 # load parameters from .json
 file = 'ISCAD_parameters.json'
@@ -12,11 +16,28 @@ params = loadjson(file)
 
 ### STATOR RESISTANCE
 Rs_DC = params.rho_s * params.l_stack / (params.h_slot * params.w_slot[0])
-zeta = ( (np.pi * cons.mu_0 * params.f) / params.rho_s )**0.5 * params.h_slot
 print("stator DC resistance = ", ("{:.3f}".format(Rs_DC*1e3)), "mOhm")
+zeta = ( (np.pi * cons.mu_0 * params.f) / params.rho_s )**0.5 * params.h_slot
 K_R = zeta * (np.sinh(2*zeta) + np.sin(2*zeta)) / (np.cosh(2*zeta) - np.cos(2*zeta)) 
 Rs_AC = Rs_DC * K_R
 print("stator AC resistance = ", ("{:.3f}".format(Rs_AC*1e3)), "mOhm")
+
+def SlotResistanceAC(frequency):
+    zeta = ( (np.pi * cons.mu_0 * frequency) / params.rho_s )**0.5 * params.h_slot
+    K_R = zeta * (np.sinh(2*zeta) + np.sin(2*zeta)) / (np.cosh(2*zeta) - np.cos(2*zeta)) 
+    Rs_AC = Rs_DC * K_R
+    return Rs_AC
+
+n = 20 # sample count
+Rs_ACs = np.zeros((int(params.f/n),2)) # 20 long
+for x in range(0,np.shape(Rs_ACs)[0]):
+    if x!=0:
+        Rs_ACs[x,1] = SlotResistanceAC(x*n)
+    else:
+        Rs_ACs[x,1] = Rs_DC
+    Rs_ACs[x,0] = x*n # frequency
+
+print(Rs_ACs)
 
 ### SELF INDUCTANCE
 Ls_s = np.pi/2 * cons.mu_0 * (params.r * params.l_stack / params.ag)
@@ -52,7 +73,7 @@ print("analytical linkage coeffs: ", linkage)
 print("mutuals array size: ", np.shape(mutuals))
 
 
-
+# L_sm vs Qs
 sumslots = np.arange(1,round(params.Qs/2/params.p + 1))
 figure1 = plt.figure()
 axes1 = figure1.add_subplot(1, 1, 1)
@@ -61,6 +82,15 @@ plt.xlabel("Qs Slot Number")
 plt.ylabel("Mutual Inductance")
 plt.show()
 
+# Rs_AC vs f
+plt.plot(Rs_ACs[:, 0], Rs_ACs[:, 1]*1e3)
+plt.xlim([Rs_ACs[0,0], Rs_ACs[-1,0]])
+plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
+plt.xlabel('frequency')
+plt.ylabel('Slot resistance, mOhm')
+plt.title('Slot resistance vs Fundamental Frequency')
+plt.grid(True)
+plt.show()
 
 '''
 # main inductances for range of Qs

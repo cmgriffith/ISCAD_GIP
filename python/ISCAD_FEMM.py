@@ -42,7 +42,10 @@ else:
         quit()
 '''   
 
+Aph = FEMM_currents(params)
+plot_Aph(Aph)
 
+'''
 # compute inductances
 Ls_s, Ls_m, mutuals = FEMM_integrals(path,params)
 
@@ -53,7 +56,7 @@ print("self inductance = " ,  ("{:.3f}".format(Ls_s*1e3)), "mH")
 print("main inductance = " ,  ("{:.3f}".format(Ls_m*1e3)), "mH")
 print("ANALYTICAL RESULTS...")
 subprocess.run(["python3", "python/ISCAD_Analytical.py"])
-
+'''
 
 if Solve == True:
     Aph = FEMM_currents(params)
@@ -99,8 +102,8 @@ if Analyze == True:
     if Plots == 1:
         #plot_B(B_ag)
         #plot_DFT(Bg_k)
-        #Aph = FEMM_currents(params)
-        #plot_Aph(Aph)
+        Aph = FEMM_currents(params)
+        plot_Aph(Aph)
         plot_mutuals(mutuals)
 
 
