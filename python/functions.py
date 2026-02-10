@@ -1,7 +1,9 @@
 import femm
 import numpy as np
+from scipy import constants as cons
 import json
 from pathlib import Path
+
 
 
 class DotDict(dict):
@@ -364,3 +366,10 @@ def FEMM_createmodel(path,params):
     print("Boundaries in group ", Qs+Qr+3)
     print("Model saved to: ","".join(path))
     print("------")
+
+
+def SlotResistanceAC(frequency, Rs_DC, params):
+    zeta = ( (np.pi * cons.mu_0 * frequency) / rho_s )**0.5 * h_slot
+    K_R = zeta * (np.sinh(2*zeta) + np.sin(2*zeta)) / (np.cosh(2*zeta) - np.cos(2*zeta)) 
+    Rs_AC = Rs_DC * K_R
+    return Rs_AC

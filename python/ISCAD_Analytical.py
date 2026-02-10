@@ -1,17 +1,16 @@
 import numpy as np
-from scipy import constants as cons
-# import warnings
+# from scipy import constants as cons
 from functions import *
-# warnings.filterwarnings('ignore')
+from plots import *
 
-import matplotlib
-matplotlib.use('TkAgg')  # or 'TkAgg'
-import matplotlib.pyplot as plt
-from matplotlib.ticker import FormatStrFormatter
+
+draw_plots = True # also generate plots, or don't
 
 # load parameters from .json
 file = 'ISCAD_parameters.json'
 params = loadjson(file)
+derived_params(params) # add derived values to params
+globals().update(params) # update params in current python file 
 
 
 ### STATOR RESISTANCE
@@ -22,22 +21,14 @@ K_R = zeta * (np.sinh(2*zeta) + np.sin(2*zeta)) / (np.cosh(2*zeta) - np.cos(2*ze
 Rs_AC = Rs_DC * K_R
 print("stator AC resistance = ", ("{:.3f}".format(Rs_AC*1e3)), "mOhm")
 
-def SlotResistanceAC(frequency):
-    zeta = ( (np.pi * cons.mu_0 * frequency) / params.rho_s )**0.5 * params.h_slot
-    K_R = zeta * (np.sinh(2*zeta) + np.sin(2*zeta)) / (np.cosh(2*zeta) - np.cos(2*zeta)) 
-    Rs_AC = Rs_DC * K_R
-    return Rs_AC
-
-n = 20 # sample count
+n = 20 # sample count for AC resistance frequency sweep
 Rs_ACs = np.zeros((int(params.f/n),2)) # 20 long
 for x in range(0,np.shape(Rs_ACs)[0]):
     if x!=0:
-        Rs_ACs[x,1] = SlotResistanceAC(x*n)
+        Rs_ACs[x,1] = SlotResistanceAC(x*n, Rs_DC, params)
     else:
         Rs_ACs[x,1] = Rs_DC
     Rs_ACs[x,0] = x*n # frequency
-
-print(Rs_ACs)
 
 ### SELF INDUCTANCE
 Ls_s = np.pi/2 * cons.mu_0 * (params.r * params.l_stack / params.ag)
@@ -72,28 +63,8 @@ print("analytical self inductance sum result: ", sum)
 print("analytical linkage coeffs: ", linkage)
 print("mutuals array size: ", np.shape(mutuals))
 
-
-# L_sm vs Qs
-sumslots = np.arange(1,round(params.Qs/2/params.p + 1))
-figure1 = plt.figure()
-axes1 = figure1.add_subplot(1, 1, 1)
-axes1.plot(sumslots, Ls_s*mutuals[1:])
-plt.xlabel("Qs Slot Number")
-plt.ylabel("Mutual Inductance")
-plt.show()
-
-# Rs_AC vs f
-plt.plot(Rs_ACs[:, 0], Rs_ACs[:, 1]*1e3)
-plt.xlim([Rs_ACs[0,0], Rs_ACs[-1,0]])
-plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
-plt.xlabel('frequency')
-plt.ylabel('Slot resistance, mOhm')
-plt.title('Slot resistance vs Fundamental Frequency')
-plt.grid(True)
-plt.show()
-
-'''
-# main inductances for range of Qs
+### MAIN INDUCTANCEs for range of Qs
+Ls_m_arr = np.zeros(Qs)
 for slot in range(1,Qs+1): 
     Qs_loop = slot
     m_loop = Qs_loop/p
@@ -103,23 +74,9 @@ for slot in range(1,Qs+1):
         sum = sum + x
     Ls_m = Ls_s * sum
     Ls_m_arr[slot-1] = Ls_m
-    # print("slotcount= ", Qs_loop)
-    # print(Ls_m)
-
-# Plot bar chart
-plt.bar(range(0,Qs), Ls_m_arr)
-plt.xlabel("Qs (slot count)")
-plt.ylabel("L_m [H] main inductance")
-plt.title("Main inductance vs Q_s")
-plt.axhline(
-    y=Ls_s,
-    color='red',
-    linestyle='--',
-    label="L_s self inductance"
-)
-plt.legend()
-plt.show()
-'''
+    
+if draw_plots == True:
+    analytical_plots(params, Ls_s, mutuals, Rs_ACs, Ls_m_arr)
 
 
 ### POWER ELECTRONICS
