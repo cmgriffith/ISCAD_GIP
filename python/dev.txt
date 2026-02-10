@@ -1,0 +1,20 @@
+1. does femm.mi_analyze(0) save the solution to file?
+2. path saves as tuple <path = (directory, filename)> DONE
+3. load .json from working directory DONE
+4. yoke inner lower BC assingment broken? DONE
+5. clean up slot drawing "slot dimension mismatch!"
+6. save FEMM files to subdirectory DONE
+7. consolidate .JSON parent and python files
+
+BUG why does "femm.mi_setcurrent(str(0),Aph)" not work for ONLY str(0)
+
+8. make FEMM main inductance account for pole number?!
+9. Analytical plots outputs DONE
+
+compute inductances for rotating rotor, for rotation across a full slot pitch
+
+
+
+---
+
+3 slot linear load model, parametric and with/without NC conductors in proximity
