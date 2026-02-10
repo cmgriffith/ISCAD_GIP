@@ -1,23 +1,21 @@
 {
   "machine": {
-    "Qs":6,
-    "Qs_active": 6,
-    "p": 2,
-    "n": 1,
-    "Qr": 6,
-    "ag": 0.5e-3,
-    "l_stack": 250e-3,
-    "r_o": 115e-3,
-    "r_so": 86.5e-3,
-    "r": 75e-3,
-    "r_yoke": 45e-3,
-    "w_slot": [3e-3, 3.5e-3],
-    "w_so": 1111e-3,
+    "Qs":3,
+    "gap_slot": 5e-3,
+    "w_slot": 4e-3,
     "h_slot": 10e-3,
-    "h_so": 1111e-3,
-    "w_bar": [2e-3, 2.5e-3],
-    "w_bo": 1111e-3,
-    "h_bar": 10e-3
+
+    "Qm": 18,
+    "gap_mut!": 5e-3,
+    "w_mut": 0.1e-3,
+    "h_mut": 10e-3,
+
+    "iron_back": 5e-3,
+    "iron_top": 1e-3,
+    "p": 2,
+    "n": 0.5,
+    "ag": 0.5e-3,
+    "l_stack": 250e-3
   },
   "material": {
     "rho_s": 2.65e-08

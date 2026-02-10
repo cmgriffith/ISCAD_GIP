@@ -7,28 +7,29 @@ from plots import *
 
 # Runtime Controls , Boolean
 CreateModel = 1
-Solve = 0 # solve full machine field
+Solve = 1 # solve full machine field
 Analyze = 0 # solve for ag flux, integrals
 Plots = 0 # show analysis plots
 CycleRender = 0 # render an animation
 
 # FILES
 filename = "ISCAD_FEMM.FEM"
-directory = "C:\\users\\chxps15\\My Documents\\UoBMechElec\\GIP\\ISCAD_GIP\\python\\FEMM output\\"
-# path = (directory + filename)
+# directory = "C:\\users\\chxps15\\My Documents\\UoBMechElec\\GIP\\ISCAD_GIP\\python\\FEMM output\\"
+directory = "C:\\Users\\Charlie\\Desktop\\ISCAD_GIP\\python\\"
 path = (directory, filename)
 bpr = 25 # bitmaps per rotation, if CycleRender == True
 
 # load parameters from .json
 file = 'ISCAD_parameters.json'
 params = loadjson(file)
-def derived_params(params):
-    globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
-    params.m = Qs/p # phase count, also slots per pole pair
-    params.r_r = r - ag # rotor radius [mm]
-    params.phaseangles = np.arange(0,2*np.pi,Qs)
-    globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
-derived_params(params) # add derived values to params
+# def derived_params(params):
+#     globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
+#     params.m = Qs/p # phase count, also slots per pole pair
+#     params.r_r = r - ag # rotor radius [mm]
+#     params.phaseangles = np.arange(0,2*np.pi,Qs)
+#     globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
+globals().update(params) ###
+derived_params(params, file) # add derived values to params
 globals().update(params) # update params in current python file 
 
 # create FEMM model
@@ -47,9 +48,6 @@ else:
         print("File not found, ending script.")
         quit()
 '''   
-
-Aph = FEMM_currents(params)
-plot_Aph(Aph)
 
 '''
 # compute inductances
@@ -79,9 +77,9 @@ else:
 
 if Analyze == True:
     if Solve != True: # ensure model has been solved
-        # Aph = FEMM_currents(params)
-        # FEMM_solve(path,0)
-        print("")
+        Aph = FEMM_currents(params)
+        FEMM_solve(path,0)
+        print("solving model before analyse")
     print("Analysing...")
     femm.mi_loadsolution()
     # View results and prepare for screenshot
@@ -103,14 +101,18 @@ if Analyze == True:
     print("self inductance = " ,  ("{:.3f}".format(Ls_s*1e3)), "mH")
     print("main inductance = " ,  ("{:.3f}".format(Ls_m*1e3)), "mH")
     print("Analytical results...")
-    subprocess.run(["python3", "ISCAD_Analytical.py"])
+    # subprocess.run(["python3", "ISCAD_Analytical.py"])
+    import ISCAD_Analytical
     # show plots
     if Plots == 1:
         #plot_B(B_ag)
         #plot_DFT(Bg_k)
         Aph = FEMM_currents(params)
         plot_Aph(Aph)
-        plot_mutuals(mutuals)
+        plot_mutuals(Qs, mutuals)
+
+
+(input("Press Enter to close FEMM"))
 
 
 '''
@@ -119,3 +121,5 @@ if Analyze == True:
 ffmpeg -framerate 30 -i bitmap%d.bmp -vf "scale=1046:816" -c:v libx264 -pix_fmt yuv420p output.mp4
 ffmpeg   -i output.mp4   -r 15   -vf scale=512:-1   -ss 00:00:00 -to 00:00:03   output.gif
 '''
+
+

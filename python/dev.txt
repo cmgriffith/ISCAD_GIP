@@ -1,20 +1,31 @@
+Q. mutual inductance integral definition & "coils". Conventionally mutual inductance is comprised of 
+2 parts, integral of inward and outward currents. An ISCAD coil is a slot, so only 1 integral?
+....
+
+### XX.12.25
+
 1. does femm.mi_analyze(0) save the solution to file?
-2. path saves as tuple <path = (directory, filename)> DONE
-3. load .json from working directory DONE
-4. yoke inner lower BC assingment broken? DONE
+2. DONE path saves as tuple <path = (directory, filename)>
+3. DONE load .json from working directory
+4. DONE yoke inner lower BC assingment broken?
 5. clean up slot drawing "slot dimension mismatch!"
-6. save FEMM files to subdirectory DONE
-7. consolidate .JSON parent and python files
+6. DONE save FEMM files to subdirectory
+7. consolidate .JSON parent and python files, import from parent directy using OS?
+8. make FEMM main inductance account for pole number?!
+9. DONE Analytical plots outputs
+10. compute inductances for rotating rotor, for rotation across a full slot pitch
 
 BUG why does "femm.mi_setcurrent(str(0),Aph)" not work for ONLY str(0)
 
-8. make FEMM main inductance account for pole number?!
-9. Analytical plots outputs DONE
+### 08.02.26
 
-compute inductances for rotating rotor, for rotation across a full slot pitch
+1. begin script for 3 slot linear load model, parametric and with/without NC conductors in proximity
 
+### 10.02.26
 
-
----
-
-3 slot linear load model, parametric and with/without NC conductors in proximity
+1. DONE FEMM autoclose fix in windows 
+2. DONE fixed derived_params() to handle non-existent params when different .JSON opened
+3. DONE change subprocess (Linux/Win path compatibility problems) to an import for Analytical code, can import anywhere in script.
+4. save plots to folder
+5. add datetime to file saves
+6. 3slot PRIORITY

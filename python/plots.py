@@ -8,7 +8,7 @@ from matplotlib.ticker import FormatStrFormatter
 # load parameters from .json
 file = 'ISCAD_parameters.json'
 params = loadjson(file)
-derived_params(params) # add derived values to params
+# derived_params(params,file) # add derived values to params
 globals().update(params) # update params in current python file 
 
 def analytical_plots(params, Ls_s, mutuals, Rs_ACs, Ls_m_arr):

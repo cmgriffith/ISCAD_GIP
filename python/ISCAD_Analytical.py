@@ -9,7 +9,7 @@ draw_plots = True # also generate plots, or don't
 # load parameters from .json
 file = 'ISCAD_parameters.json'
 params = loadjson(file)
-derived_params(params) # add derived values to params
+derived_params(params, file) # add derived values to params
 globals().update(params) # update params in current python file 
 
 
@@ -58,10 +58,8 @@ print("main inductance = " ,  ("{:.3f}".format(Ls_m*1e3)), "mH")
 print("------")
 print("stator slot count: ", params.Qs)
 print("pole count: ", params.p)
-print("number of slots summed for main L: ", round(params.Qs/2/params.p + 1))
-print("analytical self inductance sum result: ", sum)
-print("analytical linkage coeffs: ", linkage)
-print("mutuals array size: ", np.shape(mutuals))
+print("number of slots summed for main inductance L_sm: ", round(params.Qs/2/params.p + 1))
+# print("analytical self inductance sum result: ", sum)
 
 ### MAIN INDUCTANCEs for range of Qs
 Ls_m_arr = np.zeros(Qs)
@@ -79,14 +77,14 @@ if draw_plots == True:
     analytical_plots(params, Ls_s, mutuals, Rs_ACs, Ls_m_arr)
 
 
-### POWER ELECTRONICS
+# ### POWER ELECTRONICS
 
-# parameters [SI]
-# ----------------------USER INPUT-----------------------
-V_DC = 48
-f_SW = 25000
-V_DC_rip_max = 2.6
-Apk = 140 # [30s,330A] [5s,500A] 
-# -------------------------------------------------------
+# # parameters [SI]
+# # ----------------------USER INPUT-----------------------
+# V_DC = 48
+# f_SW = 25000
+# V_DC_rip_max = 2.6
+# Apk = 140 # [30s,330A] [5s,500A] 
+# # -------------------------------------------------------
 
-C_DC_min = Apk / ( params.V_DC_rip_max * 2 * np.pi * params.f_SW )
+# C_DC_min = Apk / ( params.V_DC_rip_max * 2 * np.pi * params.f_SW )
