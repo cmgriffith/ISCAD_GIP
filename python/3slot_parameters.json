@@ -1,17 +1,17 @@
 {
   "machine": {
     "Qs":3,
-    "gap_slot": 5e-3,
-    "w_slot": 4e-3,
+    "gap_slot!": 12e-3,
+    "w_slot": 3e-3,
     "h_slot": 10e-3,
 
-    "Qm": 18,
-    "gap_mut!": 5e-3,
-    "w_mut": 0.1e-3,
+    "Qm": 0,
+    "gap_mut": 1e-3,
+    "w_mut": 0.2e-3,
     "h_mut": 10e-3,
 
-    "iron_back": 5e-3,
-    "iron_top": 1e-3,
+    "iron_back":25e-3,
+    "iron_top": 25e-3,
     "p": 2,
     "n": 0.5,
     "ag": 0.5e-3,

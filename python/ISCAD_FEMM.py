@@ -40,7 +40,7 @@ else:
     femm.openfemm()
     femm.opendocument(path)
     # femm.opendocument(path) # open saved
-    femm.mi_probdef(0,'meters','planar',1e-008, l_stack)
+    femm.mi_probdef(f,'meters','planar',1e-008, l_stack, 30)
 '''
     try: 
         femm.opendocument(path)
@@ -105,8 +105,8 @@ if Analyze == True:
     import ISCAD_Analytical
     # show plots
     if Plots == 1:
-        #plot_B(B_ag)
-        #plot_DFT(Bg_k)
+        plot_B(B_ag)
+        plot_DFT(Bg_k)
         Aph = FEMM_currents(params)
         plot_Aph(Aph)
         plot_mutuals(Qs, mutuals)

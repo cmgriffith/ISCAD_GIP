@@ -2,8 +2,24 @@ Q. mutual inductance integral definition & "coils". Conventionally mutual induct
 2 parts, integral of inward and outward currents. An ISCAD coil is a slot, so only 1 integral?
 ....
 
-### XX.12.25
+Code Refactor:
+- ISCAD main file, call on analytical, FEMM, plots etc...
 
+Plots:
+- subplot implementation
+- markers DONE
+- grid DONE
+- figure1 ? axis1?
+
+### 30.12.25 
+1. Include “p” pole parameter in currents() function 
+2. After solve, save data to file 
+3. Fix airgap B function 
+4. Airgap B DFT function 
+5. Initial plot functions 
+6. Curved slots 
+
+### XX.12.25
 1. does femm.mi_analyze(0) save the solution to file?
 2. DONE path saves as tuple <path = (directory, filename)>
 3. DONE load .json from working directory
@@ -14,18 +30,26 @@ Q. mutual inductance integral definition & "coils". Conventionally mutual induct
 8. make FEMM main inductance account for pole number?!
 9. DONE Analytical plots outputs
 10. compute inductances for rotating rotor, for rotation across a full slot pitch
-
 BUG why does "femm.mi_setcurrent(str(0),Aph)" not work for ONLY str(0)
 
 ### 08.02.26
-
 1. begin script for 3 slot linear load model, parametric and with/without NC conductors in proximity
 
 ### 10.02.26
-
 1. DONE FEMM autoclose fix in windows 
 2. DONE fixed derived_params() to handle non-existent params when different .JSON opened
 3. DONE change subprocess (Linux/Win path compatibility problems) to an import for Analytical code, can import anywhere in script.
 4. save plots to folder
 5. add datetime to file saves
-6. 3slot PRIORITY
+6. 3slot first results
+
+### 11.02.26
+1. continue 3slot parametric coding
+
+### 12.02.26
+1. adapt gap_slot to be built from Qm and gap_mut only DONE
+2. fix iron boundary drawing DONE
+3. fix mut slot drawing for h_mut < h_slot condition DONE
+3. implement IABC instead of A=0 DONE
+4. compute induvidual slot inductances (account for asymmetry) DONE
+5. add glue line (0.05mm?) at joins?

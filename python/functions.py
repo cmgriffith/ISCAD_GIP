@@ -69,21 +69,20 @@ def loadjson(file):
 
 
 def derived_params(params, file):
-    print(file)
+    # print(file)
     if file == 'ISCAD_parameters.json':
-        print("derived params ISCAD")
+        # print("derived params ISCAD")
         globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
         params.m = Qs/p # phase count, also slots per pole pair
         params.r_r = r - ag # rotor radius [mm]
         params.phaseangles = np.arange(0,2*np.pi,Qs)
         globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
     elif file == '3slot_parameters.json':
-        print("derived params 3slot")
+        # print("derived params 3slot")
         globals().update(params)
-        params.endof_slots = (((Qs-1)*gap_slot) + (Qs*w_slot) + iron_back) # x co-ord of end of slots
+        params.gap_slot = (w_mut*Qm) + (gap_mut*(Qm+1))
         params.Qm_total = Qm * (Qs+1)
-        # params.gap_slot = w_mut*Qm + (gap_mut*Qm+1)
-        params.gap_mut = (gap_slot - (Qm*w_mut) ) / (Qm+1)
+        params.endof_slots = (((Qs-1)*params.gap_slot) + (Qs*w_slot) + iron_back) # x co-ord of end of slots (RHS iron?)
         globals().update(params)
 
 ### ANALYTICAL ----------------------------------------------------------------------------------
@@ -349,32 +348,33 @@ def FEMM_createmodel(path,params):
 
     # DRAW ROTOR BARS
     print("Drawing rotor bars...")
-    R = w_bar / 2
-    # polar coordinates, positive y axis as angle reference
-    bar_angle = np.arange(0,2*np.pi,2*np.pi/Qr) # bar separation angles in radians
-    Th_ri = np.atan( R[0] / (r_r - h_bar + R[0]) ) # inner half pitch angle
-    Th_ro = np.atan( R[1] / (r_r - R[1]) ) # outer half pitch angle
-    # polar coordinates arrays for bar nodes
-    R_bar = np.array([ r_r-R[1] , r_r-h_bar+R[0] , r_r-h_bar+R[0] , r_r-R[1] ])
-    Th_bar = np.array([-Th_ro,-Th_ri,Th_ri,Th_ro])
-    # cartesian coordinates arrays for bar nodes
-    x_r = np.multiply( R_bar , np.sin(Th_bar + bar_angle[...,None]) )
-    y_r = np.multiply( R_bar , np.cos(Th_bar + bar_angle[...,None]) )    
-    for bar in range(0,Qr): # for each bar Qr
-        for n in range(0,3,2): # draw 2 radial lines of bar
-            femm.mi_drawline( x_r[bar,n] , y_r[bar,n] , x_r[bar,n+1] , y_r[bar,n+1] )
-        femm.mi_addarc( x_r[bar,1] , y_r[bar,1] , x_r[bar,2] , y_r[bar,2] , 180 , 1 ) # outer slot arc
-        femm.mi_addarc( x_r[bar,3] , y_r[bar,3] , x_r[bar,0] , y_r[bar,0] , 180, 1 ) # inner slot arc
-        # get coil region centre coords
-        x_centre = np.mean(x_r[bar,:])
-        y_centre = np.mean(y_r[bar,:])
-        # add block labels, assign to circuits
-        femm.mi_addblocklabel(x_centre,y_centre)
-        femm.mi_selectlabel(x_centre,y_centre)
-         # ’blockname’, automesh, meshsize, ’incircuit’, magdir, group, turns
-        # femm.mi_addcircprop(str(bar), 0, 0) # 0 = parallel connected flag.
-        femm.mi_setblockprop('Air', 1, 0, 0, 0, str(Qs+bar), 0) # assign to circuit str(slot)
-        femm.mi_clearselected()
+    if Qr != 0:
+        R = w_bar / 2
+        # polar coordinates, positive y axis as angle reference
+        bar_angle = np.arange(0,2*np.pi,2*np.pi/Qr) # bar separation angles in radians
+        Th_ri = np.atan( R[0] / (r_r - h_bar + R[0]) ) # inner half pitch angle
+        Th_ro = np.atan( R[1] / (r_r - R[1]) ) # outer half pitch angle
+        # polar coordinates arrays for bar nodes
+        R_bar = np.array([ r_r-R[1] , r_r-h_bar+R[0] , r_r-h_bar+R[0] , r_r-R[1] ])
+        Th_bar = np.array([-Th_ro,-Th_ri,Th_ri,Th_ro])
+        # cartesian coordinates arrays for bar nodes
+        x_r = np.multiply( R_bar , np.sin(Th_bar + bar_angle[...,None]) )
+        y_r = np.multiply( R_bar , np.cos(Th_bar + bar_angle[...,None]) )    
+        for bar in range(0,Qr): # for each bar Qr
+            for n in range(0,3,2): # draw 2 radial lines of bar
+                femm.mi_drawline( x_r[bar,n] , y_r[bar,n] , x_r[bar,n+1] , y_r[bar,n+1] )
+            femm.mi_addarc( x_r[bar,1] , y_r[bar,1] , x_r[bar,2] , y_r[bar,2] , 180 , 1 ) # outer slot arc
+            femm.mi_addarc( x_r[bar,3] , y_r[bar,3] , x_r[bar,0] , y_r[bar,0] , 180, 1 ) # inner slot arc
+            # get coil region centre coords
+            x_centre = np.mean(x_r[bar,:])
+            y_centre = np.mean(y_r[bar,:])
+            # add block labels, assign to circuits
+            femm.mi_addblocklabel(x_centre,y_centre)
+            femm.mi_selectlabel(x_centre,y_centre)
+            # ’blockname’, automesh, meshsize, ’incircuit’, magdir, group, turns
+            # femm.mi_addcircprop(str(bar), 0, 0) # 0 = parallel connected flag.
+            femm.mi_setblockprop('Air', 1, 0, 0, 0, str(Qs+bar), 0) # assign to circuit str(slot)
+            femm.mi_clearselected()
 
     femm.mi_zoomnatural() # Displays the model outline to fit window
 

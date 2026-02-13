@@ -13,25 +13,40 @@ globals().update(params) # update params in current python file
 
 def analytical_plots(params, Ls_s, mutuals, Rs_ACs, Ls_m_arr):
     # Rs_AC vs f
+    plt.subplot(2,2,1)
     plt.plot(Rs_ACs[:, 0], Rs_ACs[:, 1]*1e3)
     plt.xlim([Rs_ACs[0,0], Rs_ACs[-1,0]])
     plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
+    plt.grid(color = 'blue', linestyle = '--', linewidth = 0.5)
+    plt.grid(True)
     plt.xlabel('frequency')
     plt.ylabel('Slot resistance, mOhm')
     plt.title('Slot resistance vs Fundamental Frequency')
-    plt.grid(True)
-    plt.show()
+    # plt.show()
 
-    # L_sm vs Qs
+    # # L_sm vs Qs !!!!!!!!!!!
+    # plt.subplot(2,2,2)
+    # sumslots = np.arange(1,round(Qs/2/p + 1))
+    # figure1 = plt.figure()
+    # axes1 = figure1.add_subplot(1, 1, 1)
+    # axes1.plot(sumslots, Ls_s*mutuals[1:],'d')
+    # plt.xlabel("Qs Slot Number")
+    # plt.ylabel("Mutual Inductance")
+    # plt.show()
+    
+    # L_sm vs Qs !!!!!!!!!!!
+    plt.subplot(2,2,2)
     sumslots = np.arange(1,round(Qs/2/p + 1))
-    figure1 = plt.figure()
-    axes1 = figure1.add_subplot(1, 1, 1)
-    axes1.plot(sumslots, Ls_s*mutuals[1:])
+    # figure1 = plt.figure()
+    plt.plot(sumslots, Ls_s*mutuals[1:],'d--')
+    plt.grid(color = 'blue', linestyle = '--', linewidth = 0.5)
+    plt.grid(True)
     plt.xlabel("Qs Slot Number")
     plt.ylabel("Mutual Inductance")
-    plt.show()
+    # plt.show() 
 
     # Plot bar chart of Ls_m vs Qs
+    plt.subplot(2,2,3)
     plt.bar(range(0,Qs), Ls_m_arr)
     plt.xlabel("Qs (slot count)")
     plt.ylabel("L_m [H] main inductance")
@@ -43,6 +58,8 @@ def analytical_plots(params, Ls_s, mutuals, Rs_ACs, Ls_m_arr):
         label="L_s self inductance"
     )
     plt.legend()
+
+    plt.suptitle("Analytical Plots")
     plt.show()
 
 
@@ -84,6 +101,9 @@ def plot_Aph(Aph):
     axes3 = figure3.add_subplot(1, 1, 1)
     axes3.set_xlim([0, len(Aph)])
     axes3.set_xticks(np.arange(0,len(Aph),len(Aph)/10))
+    print("plot_Aph")
+    print(np.arange(0,len(Aph)))
+    print(Aph)
     plt.bar(np.arange(0,len(Aph)), Aph)
     plt.xlabel("Qs Slot Number")
     plt.ylabel("Current [A]")
@@ -96,6 +116,9 @@ def plot_mutuals(Qs, mutuals):
     Qs = np.arange(0,Qs-1)
     figure4 = plt.figure()
     axes4 = figure4.add_subplot(1, 1, 1)
+    print("plot_mutuals()")
+    print(Qs)
+    print(mutuals)
     axes4.plot(Qs, mutuals)
     plt.xlabel("Qs Slot Number")
     plt.ylabel("Current [A]")
