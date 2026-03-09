@@ -237,7 +237,7 @@ def FEMM_integrals(path,params): # get data from FEMM solution
     return Ls_s, Ls_m, mutuals
 
 
-# create model with input parameters, assign block properties inc. coil, save to file
+# create model with input params, assign block properties inc. coil, save to file at path
 # slots named clockwise by index number converted to string
 def FEMM_createmodel(path,params):
     # Initialises and defines model units, type, accuracy and length
@@ -276,7 +276,7 @@ def FEMM_createmodel(path,params):
     femm.mi_addarc(r_o,0,-r_o,0,180,1)
     femm.mi_addarc(-r_o,0,r_o,0,180,1)
     # set zero potential boundary at stator outer and yoke inner 
-        # mi_setarcsegmentprop(maxsegdeg, ’propname’, hide, group)
+    # syntax: mi_setarcsegmentprop(maxsegdeg, ’propname’, hide, group)
     femm.mi_selectarcsegment(r_o,1e-3)
     femm.mi_setarcsegmentprop(1,'Zero',0,Qs+Qr+3)
     femm.mi_clearselected()
