@@ -73,6 +73,7 @@ def plot_B(B_ag): # plot airgap flux
     axes1.set_xlim([0, 360])
     axes1.set_xticks([0, 60, 120, 180, 240, 300, 360])
     axes1.plot(Elect_angle, B_ag)
+    axes1.plot(Elect_angle, np.real(Bg_k[0] * np.exp(np.arange(0, N) * 2j * np.pi / (N - 1))))
     # plot(Elect_angle,B_ag,Elect_angle,real(Bg_k(1)*exp((0:N-1)*2i*pi/(N-1))));
     # axes1.plot(Elect_angle, np.real(Bg_k[0] * np.exp(np.arange(0, N) * 2j * np.pi / (N - 1))))
     plt.xlabel("Angle [deg]")
