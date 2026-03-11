@@ -4,7 +4,7 @@ from scipy import constants as cons
 import json
 from pathlib import Path
 
-
+### files and variables ---------------------------------------------------------------------------
 
 class DotDict(dict):
     """Dictionary subclass that allows dot notation access to nested keys"""
@@ -68,13 +68,66 @@ def loadjson(file):
     return data
 
 
-# def derived_params(params):
-#     globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
-#     params.m = Qs/p # phase count, also slots per pole pair
-#     params.r_r = r - ag # rotor radius [mm]
-#     params.phaseangles = np.arange(0,2*np.pi,Qs)
-#     globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
+def derived_params(params, file):
+    # print(file)
+    if file == 'ISCAD_parameters.json':
+        # print("derived params ISCAD")
+        globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
+        params.m = Qs/p # phase count, also slots per pole pair
+        params.r_r = r - ag # rotor radius [mm]
+        params.phaseangles = np.arange(0,2*np.pi,Qs)
+        globals().update(params) # HORRIBLE CODE I AM SORRY, cba to rewrite
+    elif file == '3slot_parameters.json':
+        # print("derived params 3slot")
+        globals().update(params)
+        params.gap_slot = (w_mut*Qm) + (gap_mut*(Qm+1))
+        params.Qm_total = Qm * (Qs+1)
+        params.endof_slots = (((Qs-1)*params.gap_slot) + (Qs*w_slot) + iron_back) # x co-ord of end of slots (RHS iron?)
+        globals().update(params)
 
+
+def writeCSV():
+    timestamp = datetime.now().strftime('%H%M%S_%d%m%Y')
+    filename = f'python/output_{timestamp}.csv'
+    # with headers
+    with open(filename, 'w', newline='') as csvfile:
+        fieldnames = ['Qs', 'w_slot']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        # Write a single row with only the specified fields
+        writer.writerow({key: params[key] for key in fieldnames})
+
+### ANALYTICAL ----------------------------------------------------------------------------------
+
+def SlotResistanceAC(frequency, Rs_DC, params):
+    zeta = ( (np.pi * cons.mu_0 * frequency) / rho_s )**0.5 * h_slot
+    K_R = zeta * (np.sinh(2*zeta) + np.sin(2*zeta)) / (np.cosh(2*zeta) - np.cos(2*zeta)) 
+    Rs_AC = Rs_DC * K_R
+    return Rs_AC
+
+
+def DFT(x, N_hmax):
+    # digital fourier transform
+    # Undertakes a Digital Fourier Transform for harmonic order 1 to N_hmax
+    # Uses complex form Xk = 2/N sum[ x(n).exp(-i2(pi)nk/N) ]
+    # which yields harmonic amplitudes
+    # Uniform spaced samples over range 0 to 360 degrees elect.for fundamental
+    N = len(x) # 361
+    theta = np.arange(N)*2*np.pi/N # 361 length array, elements 0 to 360
+    Xk = np.zeros(N_hmax,dtype=complex) # (1,13) array of 13 zeros
+    for k in range(0,N_hmax): # for each element, 0th to 12th index
+        for n in range(0,N): # for each element, 0th to 360th index
+            # 1st to 13th elements of Xk
+            # python index 0 to 12
+            Xk[k] = Xk[k] + x[n]*np.exp(-1j*theta[n]*(k+1)) # K+1 !!!!
+        Xk[k] = 2*Xk[k]/N
+    return Xk
+
+# Bg_k = DFT(B_ag,13) # Harmonic decomposition up to 13th harmonic,
+# np.savetxt('Bg_k.txt', np.abs(Bg_k), fmt='%.3f') #
+
+
+### FEMM -----------------------------------------------------------------------------------------
 
 def FEMM_solve(step=0):
     # Save, analyze
@@ -133,6 +186,7 @@ def FEMM_contourplots(params): # get data from FEMM solution
     B_ag = data[:,1]
     return B_ag
     # print(B_ag)
+
 
 def FEMM_integrals(path,params): # get data from FEMM solution
     ### block integrals for inductances
@@ -195,35 +249,14 @@ def FEMM_integrals(path,params): # get data from FEMM solution
     return Ls_s, Ls_m, mutuals
 
 
-def DFT(x, N_hmax):
-    # digital fourier transform
-    # Undertakes a Digital Fourier Transform for harmonic order 1 to N_hmax
-    # Uses complex form Xk = 2/N sum[ x(n).exp(-i2(pi)nk/N) ]
-    # which yields harmonic amplitudes
-    # Uniform spaced samples over range 0 to 360 degrees elect.for fundamental
-    N = len(x) # 361
-    theta = np.arange(N)*2*np.pi/N # 361 length array, elements 0 to 360
-    Xk = np.zeros(N_hmax,dtype=complex) # (1,13) array of 13 zeros
-    for k in range(0,N_hmax): # for each element, 0th to 12th index
-        for n in range(0,N): # for each element, 0th to 360th index
-            # 1st to 13th elements of Xk
-            # python index 0 to 12
-            Xk[k] = Xk[k] + x[n]*np.exp(-1j*theta[n]*(k+1)) # K+1 !!!!
-        Xk[k] = 2*Xk[k]/N
-    return Xk
-
-# Bg_k = DFT(B_ag,13) # Harmonic decomposition up to 13th harmonic,
-# np.savetxt('Bg_k.txt', np.abs(Bg_k), fmt='%.3f') #
-
-
-# create model with input parameters, assign block properties inc. coil, save to file
+# create model with input params, assign block properties inc. coil, save to file at path
 # slots named clockwise by index number converted to string
-def FEMM_createmodel(path,params):
+def FEMM_createmodel(path,params,ShowFEMM):
     # Initialises and defines model units, type, accuracy and length
     print("Opening FEMM...")
-    femm.openfemm()
+    femm.openfemm(not ShowFEMM)
     femm.newdocument(0)
-    femm.mi_probdef(0,'meters','planar',1e-008, l_stack,10)
+    femm.mi_probdef(0,'meters','planar',1e-008, l_stack, 10)
 
     # Function creates a FEMM model for a stator with 3 independent massive slots
     # non-periodic winding, whole stator modelled
@@ -255,7 +288,7 @@ def FEMM_createmodel(path,params):
     femm.mi_addarc(r_o,0,-r_o,0,180,1)
     femm.mi_addarc(-r_o,0,r_o,0,180,1)
     # set zero potential boundary at stator outer and yoke inner 
-        # mi_setarcsegmentprop(maxsegdeg, ’propname’, hide, group)
+    # syntax: mi_setarcsegmentprop(maxsegdeg, ’propname’, hide, group)
     femm.mi_selectarcsegment(r_o,1e-3)
     femm.mi_setarcsegmentprop(1,'Zero',0,Qs+Qr+3)
     femm.mi_clearselected()
@@ -327,32 +360,33 @@ def FEMM_createmodel(path,params):
 
     # DRAW ROTOR BARS
     print("Drawing rotor bars...")
-    R = w_bar / 2
-    # polar coordinates, positive y axis as angle reference
-    bar_angle = np.arange(0,2*np.pi,2*np.pi/Qr) # bar separation angles in radians
-    Th_ri = np.atan( R[0] / (r_r - h_bar + R[0]) ) # inner half pitch angle
-    Th_ro = np.atan( R[1] / (r_r - R[1]) ) # outer half pitch angle
-    # polar coordinates arrays for bar nodes
-    R_bar = np.array([ r_r-R[1] , r_r-h_bar+R[0] , r_r-h_bar+R[0] , r_r-R[1] ])
-    Th_bar = np.array([-Th_ro,-Th_ri,Th_ri,Th_ro])
-    # cartesian coordinates arrays for bar nodes
-    x_r = np.multiply( R_bar , np.sin(Th_bar + bar_angle[...,None]) )
-    y_r = np.multiply( R_bar , np.cos(Th_bar + bar_angle[...,None]) )    
-    for bar in range(0,Qr): # for each bar Qr
-        for n in range(0,3,2): # draw 2 radial lines of bar
-            femm.mi_drawline( x_r[bar,n] , y_r[bar,n] , x_r[bar,n+1] , y_r[bar,n+1] )
-        femm.mi_addarc( x_r[bar,1] , y_r[bar,1] , x_r[bar,2] , y_r[bar,2] , 180 , 1 ) # outer slot arc
-        femm.mi_addarc( x_r[bar,3] , y_r[bar,3] , x_r[bar,0] , y_r[bar,0] , 180, 1 ) # inner slot arc
-        # get coil region centre coords
-        x_centre = np.mean(x_r[bar,:])
-        y_centre = np.mean(y_r[bar,:])
-        # add block labels, assign to circuits
-        femm.mi_addblocklabel(x_centre,y_centre)
-        femm.mi_selectlabel(x_centre,y_centre)
-         # ’blockname’, automesh, meshsize, ’incircuit’, magdir, group, turns
-        # femm.mi_addcircprop(str(bar), 0, 0) # 0 = parallel connected flag.
-        femm.mi_setblockprop('Air', 1, 0, 0, 0, str(Qs+bar), 0) # assign to circuit str(slot)
-        femm.mi_clearselected()
+    if Qr != 0:
+        R = w_bar / 2
+        # polar coordinates, positive y axis as angle reference
+        bar_angle = np.arange(0,2*np.pi,2*np.pi/Qr) # bar separation angles in radians
+        Th_ri = np.atan( R[0] / (r_r - h_bar + R[0]) ) # inner half pitch angle
+        Th_ro = np.atan( R[1] / (r_r - R[1]) ) # outer half pitch angle
+        # polar coordinates arrays for bar nodes
+        R_bar = np.array([ r_r-R[1] , r_r-h_bar+R[0] , r_r-h_bar+R[0] , r_r-R[1] ])
+        Th_bar = np.array([-Th_ro,-Th_ri,Th_ri,Th_ro])
+        # cartesian coordinates arrays for bar nodes
+        x_r = np.multiply( R_bar , np.sin(Th_bar + bar_angle[...,None]) )
+        y_r = np.multiply( R_bar , np.cos(Th_bar + bar_angle[...,None]) )    
+        for bar in range(0,Qr): # for each bar Qr
+            for n in range(0,3,2): # draw 2 radial lines of bar
+                femm.mi_drawline( x_r[bar,n] , y_r[bar,n] , x_r[bar,n+1] , y_r[bar,n+1] )
+            femm.mi_addarc( x_r[bar,1] , y_r[bar,1] , x_r[bar,2] , y_r[bar,2] , 180 , 1 ) # outer slot arc
+            femm.mi_addarc( x_r[bar,3] , y_r[bar,3] , x_r[bar,0] , y_r[bar,0] , 180, 1 ) # inner slot arc
+            # get coil region centre coords
+            x_centre = np.mean(x_r[bar,:])
+            y_centre = np.mean(y_r[bar,:])
+            # add block labels, assign to circuits
+            femm.mi_addblocklabel(x_centre,y_centre)
+            femm.mi_selectlabel(x_centre,y_centre)
+            # ’blockname’, automesh, meshsize, ’incircuit’, magdir, group, turns
+            # femm.mi_addcircprop(str(bar), 0, 0) # 0 = parallel connected flag.
+            femm.mi_setblockprop('Air', 1, 0, 0, 0, str(Qs+bar), 0) # assign to circuit str(slot)
+            femm.mi_clearselected()
 
     femm.mi_zoomnatural() # Displays the model outline to fit window
 
@@ -368,8 +402,3 @@ def FEMM_createmodel(path,params):
     print("------")
 
 
-def SlotResistanceAC(frequency, Rs_DC, params):
-    zeta = ( (np.pi * cons.mu_0 * frequency) / rho_s )**0.5 * h_slot
-    K_R = zeta * (np.sinh(2*zeta) + np.sin(2*zeta)) / (np.cosh(2*zeta) - np.cos(2*zeta)) 
-    Rs_AC = Rs_DC * K_R
-    return Rs_AC
