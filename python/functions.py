@@ -85,6 +85,18 @@ def derived_params(params, file):
         params.endof_slots = (((Qs-1)*params.gap_slot) + (Qs*w_slot) + iron_back) # x co-ord of end of slots (RHS iron?)
         globals().update(params)
 
+
+def writeCSV():
+    timestamp = datetime.now().strftime('%H%M%S_%d%m%Y')
+    filename = f'python/output_{timestamp}.csv'
+    # with headers
+    with open(filename, 'w', newline='') as csvfile:
+        fieldnames = ['Qs', 'w_slot']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        # Write a single row with only the specified fields
+        writer.writerow({key: params[key] for key in fieldnames})
+
 ### ANALYTICAL ----------------------------------------------------------------------------------
 
 def SlotResistanceAC(frequency, Rs_DC, params):
@@ -239,10 +251,10 @@ def FEMM_integrals(path,params): # get data from FEMM solution
 
 # create model with input parameters, assign block properties inc. coil, save to file
 # slots named clockwise by index number converted to string
-def FEMM_createmodel(path,params):
+def FEMM_createmodel(path,params,ShowFEMM):
     # Initialises and defines model units, type, accuracy and length
     print("Opening FEMM...")
-    femm.openfemm()
+    femm.openfemm(not ShowFEMM)
     femm.newdocument(0)
     femm.mi_probdef(0,'meters','planar',1e-008, l_stack, 10)
 

@@ -4,23 +4,32 @@ from functions import *
 from plots import *
 
 
-draw_plots = True # also generate plots, or don't
+draw_plots = False # also generate plots, or don't
+# IACSpercent = 65 # define relative conductivity for bar conductors
 
 # load parameters from .json
 file = 'ISCAD_parameters.json'
 params = loadjson(file)
 derived_params(params, file) # add derived values to params
 globals().update(params) # update params in current python file 
+# update resistivity
+if 'IACSpercent' in globals():
+    params.rho_s = (params.sigma_Cu * (IACSpercent/100))**-1
 
+print(params.rho_s)
+
+### AC factors
+if params.f == 0: # avoid zero division error
+    params.f = 0.1
+zeta = ( (np.pi * cons.mu_0 * params.f) / params.rho_s )**0.5 * params.h_slot
+K_R = zeta * (np.sinh(2*zeta) + np.sin(2*zeta)) / (np.cosh(2*zeta) - np.cos(2*zeta)) 
+K_L = ( 3 / (2*zeta) ) * ( (np.sinh(2*zeta) - np.sin(2*zeta)) / (np.cosh(2*zeta) - np.cos(2*zeta)) )
 
 ### STATOR RESISTANCE
 Rs_DC = params.rho_s * params.l_stack / (params.h_slot * params.w_slot[0])
 print("stator DC resistance = ", ("{:.3f}".format(Rs_DC*1e3)), "mOhm")
-zeta = ( (np.pi * cons.mu_0 * params.f) / params.rho_s )**0.5 * params.h_slot
-K_R = zeta * (np.sinh(2*zeta) + np.sin(2*zeta)) / (np.cosh(2*zeta) - np.cos(2*zeta)) 
 Rs_AC = Rs_DC * K_R
 print("stator AC resistance = ", ("{:.3f}".format(Rs_AC*1e3)), "mOhm")
-
 n = 20 # sample count for AC resistance frequency sweep
 Rs_ACs = np.zeros((int(params.f/n),2)) # 20 long
 for x in range(0,np.shape(Rs_ACs)[0]):
@@ -30,36 +39,49 @@ for x in range(0,np.shape(Rs_ACs)[0]):
         Rs_ACs[x,1] = Rs_DC
     Rs_ACs[x,0] = x*n # frequency
 
+
 ### SELF INDUCTANCE
 Ls_s = np.pi/2 * cons.mu_0 * (params.r * params.l_stack / params.ag)
-print("self inductance = " , ("{:.3f}".format(Ls_s*1e3)), "mH")
+print("self inductance = " , ("{:.3f}".format(Ls_s*1e6)), "uH")
+
 
 ### LEAKAGE INDUCTANCE
 # for DC current in rectangular slots
 lambda_slot = (params.h_slot / 3*params.w_slot[0]) + (params.h_so / params.w_so)
 Ls_sigma_DC = cons.mu_0 * params.l_stack * lambda_slot
 print("DC leakage inductance = " ,  ("{:.3f}".format(Ls_sigma_DC*1e6)), "uH")
-# AC corrected to fundamental f
-K_L = 3 / (2*zeta) * (np.sinh(2*zeta) - np.sin(2*zeta)) / (np.cosh(2*zeta) - np.cos(2*zeta)) 
 Ls_sigma_AC = cons.mu_0 * params.l_stack * lambda_slot * K_L
 print("AC leakage inductance = " ,  ("{:.3f}".format(Ls_sigma_AC*1e6)), "uH")
 
 
 ### MAIN INDUCTANCE
 sum = 0
-mutuals = np.zeros(round(params.Qs/2/params.p + 1))
-for k in range(1,round(params.Qs/2/params.p + 1)):
+mutuals = np.zeros(round(params.Qs/(2*params.p) + 1))    ## +1 ??
+for k in range(1,round(params.Qs/(2*params.p) + 1)):
     linkage = np.cos( params.p * (k-1) * 2*np.pi / params.Qs)**2
     mutuals[k] = linkage
     sum = sum + linkage
 Ls_m = Ls_s * sum
 print("main inductance = " ,  ("{:.3f}".format(Ls_m*1e3)), "mH")
+L_bar_total = Ls_sigma_AC + Ls_m
+print("total bar inductance = " ,  ("{:.3f}".format((L_bar_total)*1e3)), "mH")
 
 print("------")
 print("stator slot count: ", params.Qs)
-print("pole count: ", params.p)
+print("pole pair count: ", params.p)
+print("frequency: ", params.f, " Hz")
 print("number of slots summed for main inductance L_sm: ", round(params.Qs/2/params.p + 1))
 # print("analytical self inductance sum result: ", sum)
+
+
+
+
+
+
+
+
+
+
 
 ### MAIN INDUCTANCEs for range of Qs
 Ls_m_arr = np.zeros(Qs)

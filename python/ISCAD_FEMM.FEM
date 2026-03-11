@@ -143,356 +143,356 @@
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "1"
-    <TotalAmps_re> = 56.943130030612025
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "2"
-    <TotalAmps_re> = 104.04027556683518
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "3"
-    <TotalAmps_re> = 133.14791228132148
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "4"
-    <TotalAmps_re> = 139.23306535155828
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "5"
-    <TotalAmps_re> = 121.24355652982142
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "6"
-    <TotalAmps_re> = 82.289935320946256
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "7"
-    <TotalAmps_re> = 29.107636714486361
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "8"
-    <TotalAmps_re> = -29.107636714486269
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "9"
-    <TotalAmps_re> = -82.289935320946228
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "10"
-    <TotalAmps_re> = -121.24355652982139
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "11"
-    <TotalAmps_re> = -139.23306535155825
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "12"
-    <TotalAmps_re> = -133.14791228132151
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "13"
-    <TotalAmps_re> = -104.04027556683523
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "14"
-    <TotalAmps_re> = -56.943130030612132
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "15"
-    <TotalAmps_re> = -3.4290110376125892e-014
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "16"
-    <TotalAmps_re> = 56.943130030611961
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "17"
-    <TotalAmps_re> = 104.04027556683512
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "18"
-    <TotalAmps_re> = 133.14791228132148
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "19"
-    <TotalAmps_re> = 139.23306535155828
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "20"
-    <TotalAmps_re> = 121.24355652982148
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "21"
-    <TotalAmps_re> = 82.28993532094627
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "22"
-    <TotalAmps_re> = 29.107636714486517
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "23"
-    <TotalAmps_re> = -29.107636714486176
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "24"
-    <TotalAmps_re> = -82.289935320946199
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "25"
-    <TotalAmps_re> = -121.24355652982129
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "26"
-    <TotalAmps_re> = -139.23306535155825
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "27"
-    <TotalAmps_re> = -133.14791228132154
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "28"
-    <TotalAmps_re> = -104.04027556683535
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "29"
-    <TotalAmps_re> = -56.943130030612167
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "30"
-    <TotalAmps_re> = -6.8580220752251784e-014
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "31"
-    <TotalAmps_re> = 56.943130030611812
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "32"
-    <TotalAmps_re> = 104.04027556683509
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "33"
-    <TotalAmps_re> = 133.14791228132148
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "34"
-    <TotalAmps_re> = 139.23306535155828
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "35"
-    <TotalAmps_re> = 121.24355652982149
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "36"
-    <TotalAmps_re> = 82.289935320946299
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "37"
-    <TotalAmps_re> = 29.107636714486553
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "38"
-    <TotalAmps_re> = -29.107636714486141
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "39"
-    <TotalAmps_re> = -82.289935320946157
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "40"
-    <TotalAmps_re> = -121.24355652982128
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "41"
-    <TotalAmps_re> = -139.23306535155822
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "42"
-    <TotalAmps_re> = -133.14791228132154
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "43"
-    <TotalAmps_re> = -104.04027556683536
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "44"
-    <TotalAmps_re> = -56.943130030612423
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "45"
-    <TotalAmps_re> = -1.0287033112837766e-013
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "46"
-    <TotalAmps_re> = 56.943130030611783
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "47"
-    <TotalAmps_re> = 104.04027556683489
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "48"
-    <TotalAmps_re> = 133.14791228132145
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "49"
-    <TotalAmps_re> = 139.23306535155828
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "50"
-    <TotalAmps_re> = 121.24355652982163
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "51"
-    <TotalAmps_re> = 82.289935320946327
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "52"
-    <TotalAmps_re> = 29.107636714486585
+    <TotalAmps_re> = 0
     <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "53"
-    <TotalAmps_re> = -29.107636714485864
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "54"
-    <TotalAmps_re> = -82.289935320946142
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "55"
-    <TotalAmps_re> = -121.24355652982126
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "56"
-    <TotalAmps_re> = -139.23306535155822
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "57"
-    <TotalAmps_re> = -133.14791228132154
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "58"
-    <TotalAmps_re> = -104.04027556683539
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
   <BeginCircuit>
     <CircuitName> = "59"
-    <TotalAmps_re> = -56.943130030612458
-    <TotalAmps_im> = -0
+    <TotalAmps_re> = 0
+    <TotalAmps_im> = 0
     <CircuitType> = 0
   <EndCircuit>
 [NumPoints] = 488

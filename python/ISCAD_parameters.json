@@ -20,11 +20,13 @@
     "h_bar": 10e-3
   },
   "material": {
-    "rho_s": 2.65e-08
+    "rho_s": 2.65e-08,
+    "sigma_s": 37.7e6,
+    "sigma_Cu": 58e6
   },
   "electrical": {
     "Apk": 140,
-    "f": 500
+    "f": 0
   },
   "power_electronics": {
     "V_DC": 48,

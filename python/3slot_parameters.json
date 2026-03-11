@@ -6,12 +6,12 @@
     "h_slot": 10e-3,
 
     "Qm": 0,
-    "gap_mut": 1e-3,
+    "gap_mut": 10e-3,
     "w_mut": 0.2e-3,
     "h_mut": 10e-3,
 
-    "iron_back":25e-3,
-    "iron_top": 25e-3,
+    "iron_back":30e-3,
+    "iron_top": 30e-3,
     "p": 2,
     "n": 0.5,
     "ag": 0.5e-3,
@@ -21,14 +21,14 @@
     "rho_s": 2.65e-08
   },
   "electrical": {
-    "Apke": 120,
+    "Apk": 50,
     "f": 500
   },
   "power_electronics": {
     "V_DC": 48,
     "f_SW": 25000,
     "V_DC_rip_max": 2.6,
-    "Apk": 140
+    "Ipk": 10
   },
   "analysis": {
     "k": 13

@@ -52,4 +52,10 @@ BUG why does "femm.mi_setcurrent(str(0),Aph)" not work for ONLY str(0)
 3. fix mut slot drawing for h_mut < h_slot condition DONE
 3. implement IABC instead of A=0 DONE
 4. compute induvidual slot inductances (account for asymmetry) DONE
-5. add glue line (0.05mm?) at joins?
+5. add glue line (0.05mm?) at joins to account for airgap between materials? 
+without an additional block
+
+### 16.02.26
+1. print to .CSV
+2. ensure current normalisation working? phase current shouldn't affect L
+3. consider back iron vs mutual slots for L tuning

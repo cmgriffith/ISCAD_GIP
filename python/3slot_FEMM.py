@@ -9,7 +9,7 @@ start = time.time()
 CreateModel = 1
 Solve = 0
 Analyse = 1
-ShowFEMM = 0  # runs faster if 0
+ShowFEMM = 1  # runs faster if 0
 
 # FILES
 filename = "3slot_FEMM.FEM"
@@ -24,10 +24,11 @@ globals().update(params) # update params in current python file
 derived_params(params, file) # add derived values to params
 globals().update(params) # update params in current python file 
 
+print("\n")
 print("------")
 femm.openfemm(not ShowFEMM)
 femm.newdocument(0)
-femm.mi_probdef(f,'meters','planar',1e-008, l_stack,30)
+femm.mi_probdef(0,'meters','planar',1e-008, l_stack,30) # arg[0]= frequency of problem
 
 
 ### MECHANICAL -----------------------------------------------------------------------------------------------
@@ -45,7 +46,7 @@ def FEMM_create3slot(path):
     RHS_bound = iron_back + (Qs*gap_slot) + (Qs*w_slot) - gap_mut # x co-ord of end of slots (RHS iron?)
     LHS_bound = -iron_back - gap_slot + gap_mut
     femm.mi_makeABC(7, RHS_bound-LHS_bound, gap_slot+w_slot/2, h_slot/2, 0)
-    airzone = np.array([LHS_bound - iron_back , h_slot + iron_top])
+    airzone = np.array([LHS_bound - 10e-3 , h_slot + iron_top])
     femm.mi_addblocklabel(*airzone) # back iron set material
     femm.mi_selectlabel(*airzone)
     femm.mi_setblockprop('Air', 1, Qs+Qm+4)
@@ -184,48 +185,127 @@ if Solve == 1:
 if Analyse == 1:
     print("Analysing FEMM model...")
     start = time.time()
-    Aph = np.zeros(Qs)
-    active_slot = 0
-    Aph[active_slot] = Apk
-    # Aph = [Apk,0,0]
-    for slot in range(0,Qs):
-        femm.mi_setcurrent(str(slot),Aph[slot])
+    # initialise arrays
+    Ls_s = np.zeros(Qs)
+    Ls_m = np.zeros(Qs)
     
-    femm.mi_analyze(0)
-    femm.mi_loadsolution()
-    femm.mo_zoomnatural()
-    femm.mo_showdensityplot(1,0,3,0,"jmag") 
+    for active_slot in range(0,Qs): # analyse each slot
+        # print("active slot: ",active_slot) ###
+        mutuals = np.zeros(Qs+Qm_total) # [slot 1 , slot 2] , [val 1 , val 2]
+        # set currents
+        for slot in range(0,Qs):
+            if slot == active_slot:
+                femm.mi_setcurrent(str(slot),Apk)
+            else:
+                femm.mi_setcurrent(str(slot),0)
+        # SOLVE
+        femm.mi_analyze(0)
+        femm.mi_loadsolution()
+        femm.mo_showdensityplot(1,0,3,0,"jmag")
+        femm.mo_zoomnatural()
+        # SELF INDUCTANCE
+        femm.mo_seteditmode('area')
+        femm.mo_groupselectblock(str(active_slot))
+        AJ = femm.mo_blockintegral(0)
+        femm.mo_clearblock()
+        current,*_ = femm.mo_getcircuitproperties(str(active_slot))
+        # Ls_s[active_slot] = AJ / (current**2)
+        Ls_s[active_slot] = AJ / (Apk**2)
+        # MUTUAL INDUCTANCE
+        for slot in range(0,Qs+Qm_total):
+            if slot == active_slot:
+                # print("slot index passed: ", slot)
+                pass
+            else:
+                # print("slot index integrated: ", slot)
+                femm.mo_seteditmode('area')
+                femm.mo_groupselectblock(str(slot))
+                A = femm.mo_blockintegral(1) # A integral A_2
+                a = femm.mo_blockintegral(5) # cross section area a_2
+                femm.mo_clearblock()
+                # i_1 is active slot current
+                L_m = n/((Apk*a)) * A
+                mutuals[slot] = L_m
+        Ls_m[active_slot] = Ls_s[active_slot] + np.sum(mutuals)
 
-    # SELF INDUCTANCE
-    femm.mo_seteditmode('area')
-    femm.mo_groupselectblock(active_slot)
-    AJ = femm.mo_blockintegral(0)
-    femm.mo_clearblock()
-    current,*_ = femm.mo_getcircuitproperties(str(active_slot))
-    Ls_s = AJ / (current**2)
-
-    # MUTUAL INDUCTANCE
-    mutuals = [];
-    for slot in range(0,Qs+Qm_total):
-        if slot == active_slot:
-            pass
-        else:
-            femm.mo_seteditmode('area')
-            femm.mo_groupselectblock(str(slot))
-            A = femm.mo_blockintegral(1) # A integral
-            a = femm.mo_blockintegral(5) # cross section area
-            femm.mo_clearblock()
-            mutuals.append((n/(np.float64(Apk)*a)) * A)
-    Ls_m = Ls_s + np.sum(np.absolute(mutuals))
-
+        # print(mutuals) ###
+        # (input("Press ENTER to continue analysis")) ###
+    
     end = time.time()
     print("Model Analysed in ", ("{:.2f}".format((end-start))), "s")
     print("------")
-
     print("Numerical results...")
-    print("self inductance = " ,  ("{:.3f}".format(Ls_s*1e3)), "mH")
-    print("main inductance = " ,  ("{:.3f}".format(Ls_m*1e3)), "mH")
+
+    print("Apk = ", Apk , " A ")
+    print("self inductances = ", end=" ")
+    for slot in range(0,Qs):
+        print("{:.3f}".format(Ls_s[slot]*1e3), end=" "), 
+    print("mH")
+
+    print("main inductances = ", end=" ")
+    for slot in range(0,Qs):
+        print("{:.3f}".format(Ls_m[slot]*1e3), end=" "), 
+    print("mH")
+
+    print("main inductance range = ", ("{:.3f}".format(np.ptp(Ls_m)*1e3)), " mH , ", ("{:.0f}".format(  np.ptp(Ls_m) / np.mean(Ls_m) *100 )), "%")
+
+    # print("mutual inductances range = ", ("{:.3f}".format(np.ptp(mutuals)*1e3)), "mH ," , ("{:.0f}".format(np.ptp(mutuals)/Ls_s*100))  , "% of self inductance" )
     print("------")
+
+
+    # Aph = np.zeros(Qs)
+    # active_slot = 0 ###
+    # # print("type active_slot: ", type(active_slot))
+    # Aph[active_slot] = Apk
+    # # Aph = [Apk,0,0]
+    # for slot in range(0,Qs):
+    #     femm.mi_setcurrent(str(slot),Aph[slot])
+    # # print("Aph: ", Aph)
+    # femm.mi_analyze(0)
+    # femm.mi_loadsolution()
+    # femm.mo_zoomnatural()
+    # femm.mo_showdensityplot(1,0,3,0,"jmag") 
+
+    # # SELF INDUCTANCE
+    # femm.mo_seteditmode('area')
+    # femm.mo_groupselectblock(active_slot)
+    # AJ = femm.mo_blockintegral(0)
+    # femm.mo_clearblock()
+    # current,*_ = femm.mo_getcircuitproperties(str(active_slot))
+    # Ls_s = AJ / (current**2)
+
+    # # MUTUAL INDUCTANCE
+    # # mutuals = [];
+    # mutuals = np.zeros(Qs+Qm_total) # [slot 1 , slot 2] , [val 1 , val 2]
+    # for slot in range(0,Qs+Qm_total):
+    #     if slot == active_slot:
+    #         # print("slot index passed: ", slot)
+    #         pass
+    #     else:
+    #         # print("slot index: ", slot)
+    #         femm.mo_seteditmode('area')
+    #         femm.mo_groupselectblock(str(slot))
+    #         A = femm.mo_blockintegral(1) # A integral A_2
+    #         a = femm.mo_blockintegral(5) # cross section area a_2
+    #         femm.mo_clearblock()
+    #         # i_1 is active slot current
+    #         L_m = n/((Aph[active_slot]*a)) * A
+    #         mutuals[slot] = L_m
+    #         # print("mutual inductances: ", mutuals)
+    # # Ls_m = Ls_s + np.sum(np.absolute(mutuals)) # for AC FEMM case
+    # # print("L_s", Ls_s)
+    # # print("mutuals sum", np.sum(mutuals))
+    # Ls_m = Ls_s + np.sum(mutuals)
+
+    # end = time.time()
+    # print("Model Analysed in ", ("{:.2f}".format((end-start))), "s")
+    # print("------")
+
+    # print("Numerical results...")
+    # print("self inductances = " ,  ("{:.3f}".format(Ls_s*1e3)), "mH")
+    # print("main inductance = " ,  ("{:.3f}".format(Ls_m*1e3)), "mH")
+    # print("mutual inductances range = ", ("{:.3f}".format(np.ptp(mutuals)*1e3)), "mH ," , ("{:.0f}".format(np.ptp(mutuals)/Ls_s*100))  , "% of self inductance" )
+    # print("------")
 
 
 (input("Press ENTER to close FEMM"))

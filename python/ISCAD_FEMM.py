@@ -7,10 +7,12 @@ from plots import *
 
 # Runtime Controls , Boolean
 CreateModel = 1
-Solve = 1 # solve full machine field
-Analyze = 0 # solve for ag flux, integrals
+Solve = 0 # solve full machine field
+Analyze = 1 # solve for ag flux, integrals
+
 Plots = 0 # show analysis plots
 CycleRender = 0 # render an animation
+ShowFEMM = 0  # runs faster if 0
 
 # FILES
 filename = "ISCAD_FEMM.FEM"
@@ -34,10 +36,10 @@ globals().update(params) # update params in current python file
 
 # create FEMM model
 if CreateModel == True:
-    FEMM_createmodel(path,params) # create, save, leave open in FEMM
+    FEMM_createmodel(path,params,ShowFEMM) # create, save, leave open in FEMM
 else:
     print("Opening FEMM file: ", path)
-    femm.openfemm()
+    femm.openfemm(not ShowFEMM)
     femm.opendocument(path)
     # femm.opendocument(path) # open saved
     femm.mi_probdef(f,'meters','planar',1e-008, l_stack, 30)
