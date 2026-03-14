@@ -24,7 +24,7 @@
     "rho_s": 2.65e-08
   },
   "electrical_parameters": {
-    "Apk": 120,
+    "Apk": 140,
     "f_sw": 25000
   },
   "power_electronics": {

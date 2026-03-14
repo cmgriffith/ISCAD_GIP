@@ -21,4 +21,4 @@ bh_data = [
 
 # Add material with non-linear properties
 # Parameters: Name, mux muy Hc HcAng Nlam LamFill LamType CrossSection
-femm.mi_addmaterial('CustomIron', 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+femm.mi_addmaterial('Somaloy', 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0)
