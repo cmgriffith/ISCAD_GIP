@@ -16,7 +16,6 @@ colors = {[0 0.447 0.741], [0.850 0.325 0.098], [0.466 0.674 0.188]};
 %% Section 1: Paths and Folder Definitions
 
 base_path = 'C:\Users\ossia\OneDrive - University of Bristol\grp-GRP Group 1002 - Documents\DPT Results\Tests at Peak Current';
-
 folders = { ...
     '35-5-5DPT_48VDC_logic_VGS1_IDtotal_VDS_36uHinductor', ...
     '35-5-5DPT_48VDC_logic_VGS2_ID2and3_VDS_36uHinductor', ...
@@ -121,12 +120,6 @@ plot_corr_event(time, I_total_corr, I_23_corr, I_3_corr, T1+T2,  'Switch-On',  c
 I_D3 = I_3_corr;
 I_D2 = I_23_corr    - I_D3;
 I_D1 = I_total_corr - I_23_corr;
-
-%% Section 7: Sanity Check — deduction residual (comment out after verification)
-figure('Name', 'Deduction Residual');
-plot(time * 1e6, I_D1 + I_D2 + I_D3 - I_total_corr);
-xlabel('Time (\mus)'); ylabel('Residual (A)');
-title('I_{D1}+I_{D2}+I_{D3} - I_{total,corr} (should be ~0)');
 
 %% Section 8: Drain Current Plots
 
