@@ -3,15 +3,24 @@
 % via rogowski coil subtraction, and plots I_D, I_G and V_GS during switch-off
 % and switch-on events over a 1150 ns window.
 
-%% Timing & Circuit Parameters
+%% Timeseries alignment strategy
+% DPT pulsetrain is identical between empirical and simulation, but absolute timestamps are not. 
+% empirical timestamps are fixed, since they correlate to the physically meaningful logic trigger 3.6 V rising edge
+% LTspice timestamps will have an offset applied IMMEDIATELY after import, such that the timeseries are consistent for further anaylysis
+% offset = ...
+
+%% DPT Timing & Circuit Parameters
 
 T1  = 35;   % first pulse duration (µs) — switch-off event occurs at T1
 T2  = 5;    % dead time duration (µs)
 T3  = 5;    % second pulse duration (µs) — switch-on event occurs at T1+T2
 R_G = 5.1;  % gate resistance (Ohms)
 
+timewindow = 1150;
+
 % Consistent MOSFET colours: blue / orange-red / green
 colors = {[0 0.447 0.741], [0.850 0.325 0.098], [0.466 0.674 0.188]};
+
 
 %% Section 1: Paths and Folder Definitions
 
@@ -32,7 +41,7 @@ asym_folders = { ...
 load_ch   = @(f, ch) load_csv(fullfile(base_path,  folders{f},      sprintf('CH%d.CSV', ch)));
 load_asym = @(f, ch) load_csv(fullfile(asym_base,  asym_folders{f}, sprintf('CH%d.CSV', ch)));
 
-%% Section 2: Import Rogowski & VGS/VDS Channels
+%% Section 2: EMPIRICAL Import Rogowski & VGS/VDS Channels
 
 [time, PWM]     = load_ch(1, 1);   % shared time axis (trigger-aligned) + PWM
 
@@ -48,7 +57,7 @@ load_asym = @(f, ch) load_csv(fullfile(asym_base,  asym_folders{f}, sprintf('CH%
 [~,    VDS2]    = load_ch(2, 4);   % V_DS MOSFET 2
 [~,    VDS3]    = load_ch(3, 4);   % V_DS MOSFET 3
 
-%% Section 3: Import Gate Current Channels
+%% Section 3: EMPIRICAL Import Gate Current Channels
 
 [~,    VGS1_new] = load_asym(1, 2);   % V_GS MOSFET 1 (re-measured)
 [~,    V_b1]     = load_asym(1, 3);   % voltage before gate resistor, MOSFET 1
@@ -72,7 +81,28 @@ I_G1 = V_RG1 / R_G;
 I_G2 = V_RG2 / R_G;
 I_G3 = V_RG3 / R_G;
 
-%% Section 4: Gate Current Plots
+%% Section 4: SIMULATION Import LTspice Channels
+
+ltspice_csv = fullfile(base_path, 'LTspiceExport_35-5-5_48VDC_36uH.csv');
+sim_raw = readtable(ltspice_csv);
+
+time_sim   = sim_raw{:,1};
+VDS2_sim   = sim_raw{:,2};
+VDS3_sim   = sim_raw{:,3};
+PWLdriver_sim = sim_raw{:,4};
+VGS1_sim   = sim_raw{:,5};
+VGS2_sim   = sim_raw{:,6};
+VGS3_sim   = sim_raw{:,7};
+VDS1_sim   = sim_raw{:,8};
+I_total_sim = sim_raw{:,9};
+IDS1_sim   = sim_raw{:,10};
+IDS2_sim   = sim_raw{:,11};
+IDS3_sim   = sim_raw{:,12};
+IGS1_sim   = sim_raw{:,13};
+IGS2_sim   = sim_raw{:,14};
+IGS3_sim   = sim_raw{:,15};
+
+%% Section 5: EMPIRICAL Gate Current Plots
 
 % Full sample window
 figure('Name', 'Full Sample Window — Gate Currents', 'NumberTitle', 'off');
@@ -99,7 +129,7 @@ plot_vgs_compare(time, VGS1,     VGS2,     VGS3, ...
                  time, VGS1_new, VGS2_new, VGS3_new, ...
                  T1+T2, 'Switch-On',  colors);
 
-%% Section 5: Rogowski Coil Correction [EDIT AS NEEDED]
+%% Section 6: Rogowski Coil Correction [EDIT AS NEEDED]
 % All signals share the same timebase — add or subtract I_G terms directly.
 % Default: no correction applied.
 
@@ -115,7 +145,7 @@ plot_raw_and_ig_event(time, I_total, I_23, I_3, I_G1, I_G2, I_G3, T1+T2,  'Switc
 plot_corr_event(time, I_total_corr, I_23_corr, I_3_corr, T1,     'Switch-Off', colors);
 plot_corr_event(time, I_total_corr, I_23_corr, I_3_corr, T1+T2,  'Switch-On',  colors);
 
-%% Section 6: Per-MOSFET Drain Current Deduction
+%% Section 7: Per-MOSFET Drain Current Deduction
 
 I_D3 = I_3_corr;
 I_D2 = I_23_corr    - I_D3;
@@ -182,7 +212,7 @@ function plot_raw_and_ig_event(t, I_total, I_23, I_3, I_G1, I_G2, I_G3, t_event_
     ylabel('Current (A)');
     title(['Raw Rogowski & Gate Currents — ' label]);
     legend('Location', 'best');
-    xlim([0, 1150]);
+    xlim([0, timewindow]);
     grid on;
 end
 
@@ -202,7 +232,7 @@ function plot_corr_event(t, I_total_corr, I_23_corr, I_3_corr, t_event_us, label
     ylabel('Current (A)');
     title(['Corrected Rogowski Signals — ' label]);
     legend('Location', 'best');
-    xlim([0, 1150]);
+    xlim([0, timewindow]);
     grid on;
 end
 
@@ -235,7 +265,7 @@ function plot_vgs_compare(t_orig, VGS1_orig, VGS2_orig, VGS3_orig, ...
         title(labels{k});
         ylabel('V_{GS} (V)');
         legend('Location', 'best');
-        xlim([0, 1150]);
+        xlim([0, timewindow]);
         grid on;
         if k == 3, xlabel('Time (ns)'); end
     end
@@ -259,7 +289,7 @@ function plot_ig_event(t, I_G1, I_G2, I_G3, VGS1, VGS2, VGS3, t_event_us, label,
     hold off;
     ylabel('Gate Current I_G (A)');
     legend('Location', 'best');
-    xlim([0, 1150]);
+    xlim([0, timewindow]);
     grid on;
 
     nexttile;
@@ -271,7 +301,7 @@ function plot_ig_event(t, I_G1, I_G2, I_G3, VGS1, VGS2, VGS3, t_event_us, label,
     xlabel('Time (ns)');
     ylabel('V_{GS} (V)');
     legend('Location', 'best');
-    xlim([0, 1150]);
+    xlim([0, timewindow]);
     grid on;
 end
 
@@ -293,7 +323,7 @@ function plot_event(t, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, t_event_us, label, co
     hold off;
     ylabel('Drain Current I_D (A)');
     legend('Location', 'best');
-    xlim([0, 1150]);
+    xlim([0, timewindow]);
     grid on;
 
     nexttile;
@@ -305,6 +335,6 @@ function plot_event(t, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, t_event_us, label, co
     xlabel('Time (ns)');
     ylabel('V_{GS} (V)');
     legend('Location', 'best');
-    xlim([0, 1150]);
+    xlim([0, timewindow]);
     grid on;
 end
