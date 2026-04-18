@@ -3,6 +3,7 @@
 % via rogowski coil subtraction, and plots I_D, I_G and V_GS during switch-off
 % and switch-on events over a 1150 ns window.
 
+<<<<<<< HEAD
 %% Timing & Circuit Parameters
 
 T1     = 35;   % first pulse duration (µs) — switch-off event occurs at T1
@@ -18,6 +19,40 @@ sim_timeoffset = 9.9581e-6
 % Consistent MOSFET colours: blue / orange-red / green
 colors = {[0 0.447 0.741], [0.850 0.325 0.098], [0.466 0.674 0.188]};
 
+=======
+%% Timeseries alignment strategy
+% DPT pulsetrain is identical between empirical and simulation, but absolute timestamps are not. 
+% empirical timestamps are fixed, since they correlate to the physically meaningful logic trigger 3.6 V rising edge
+% LTspice timestamps will have an offset applied IMMEDIATELY after import, such that the timeseries are consistent for further anaylysis
+% offset = ...
+time_sim_offset = 9.9581e-6
+
+%% DPT Timing & Circuit Parameters
+
+T1  = 35;   % first pulse duration (µs) - switch-off event occurs at T1
+T2  = 5;    % dead time duration (µs)
+T3  = 5;    % second pulse duration (µs) - switch-on event occurs at T1+T2
+R_G = 5.1;  % gate resistance (Ohms)
+
+timewindow = 1150;
+
+% Consistent MOSFET colours: blue / orange-red / green
+colors = {[0 0.447 0.741], [0.850 0.325 0.098], [0.466 0.674 0.188]};
+
+
+%% Plot Control Flags
+% Set to true/false to enable/disable each figure group
+
+plt_gate_current_full    = 0;   % "Full Sample Window - Gate Currents"
+plt_gate_current_events  = 1;   % "Gate Current - Switch-Off/On"
+plt_vgs_compare          = 0;   % "VGS Comparison - Switch-Off/On"
+plt_raw_rogowski_events  = 0;   % "Raw Rogowski & Gate Currents - Switch-Off/On"
+plt_corr_rogowski_events = 0;   % "Corrected Rogowski - Switch-Off/On"
+plt_raw_rogowski_full    = 0;   % "Full Sample Window - Raw Rogowski Measurements"
+plt_drain_current_full   = 0;   % "Full Sample Window - Drain Currents"
+plt_drain_current_events = 1;   % "Switch-Off/On" drain current + VGS
+
+>>>>>>> parent of fac3db5 (logic signal checks)
 %% Section 1: Paths and Folder Definitions
 
 base_path = 'C:\Users\ossia\OneDrive - University of Bristol\grp-GRP Group 1002 - Documents\DPT Results\Tests at Peak Current';
@@ -39,7 +74,7 @@ load_asym = @(f, ch) load_csv(fullfile(asym_base,  asym_folders{f}, sprintf('CH%
 
 %% Section 2: Import Rogowski & VGS/VDS Channels
 
-[time, logic]     = load_ch(1, 1);   % shared time axis (trigger-aligned) + logic
+[time, PWM]     = load_ch(1, 1);   % shared time axis (trigger-aligned) + PWM
 
 [~,    VGS1]    = load_ch(1, 2);   % V_GS MOSFET 1
 [~,    VGS2]    = load_ch(2, 2);   % V_GS MOSFET 2
@@ -92,9 +127,27 @@ title('Per-MOSFET Gate Currents — Full Sample Window');
 legend('Location', 'best');
 grid on;
 
+<<<<<<< HEAD
 % Switching event windows
 plot_ig_event(time, I_G1, I_G2, I_G3, VGS1_new, VGS2_new, VGS3_new, T1,     'Switch-Off', colors);
 plot_ig_event(time, I_G1, I_G2, I_G3, VGS1_new, VGS2_new, VGS3_new, T1+T2, 'Switch-On',  colors);
+=======
+time_sim   = sim_raw{:,1} - time_sim_offset;   % offset: shift LTspice timestamps by -10 us
+VDS2_sim   = sim_raw{:,2};
+VDS3_sim   = sim_raw{:,3};
+PWLdriver_sim = sim_raw{:,4};
+VGS1_sim   = sim_raw{:,5};
+VGS2_sim   = sim_raw{:,6};
+VGS3_sim   = sim_raw{:,7};
+VDS1_sim   = sim_raw{:,8};
+I_total_sim = sim_raw{:,9};
+ID1_sim   = sim_raw{:,10};
+ID2_sim   = sim_raw{:,11};
+ID3_sim   = sim_raw{:,12};
+IG1_sim   = sim_raw{:,13};
+IG2_sim   = sim_raw{:,14};
+IG3_sim   = sim_raw{:,15};
+>>>>>>> parent of fac3db5 (logic signal checks)
 
 % VGS comparison: original vs re-measured
 plot_vgs_compare(time, VGS1,     VGS2,     VGS3, ...
@@ -104,8 +157,45 @@ plot_vgs_compare(time, VGS1,     VGS2,     VGS3, ...
                  time, VGS1_new, VGS2_new, VGS3_new, ...
                  T1+T2, 'Switch-On',  colors);
 
+<<<<<<< HEAD
 %% Section 5: Rogowski Coil Correction [EDIT AS NEEDED]
 % All signals share the same timebase — add or subtract I_G terms directly.
+=======
+if plt_gate_current_full
+    figure('Name', 'Full Sample Window - Gate Currents', 'NumberTitle', 'off');
+    hold on;
+    plot(time * 1e6, I_G1, 'Color', colors{1}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 1');
+    plot(time * 1e6, I_G2, 'Color', colors{2}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 2');
+    plot(time * 1e6, I_G3, 'Color', colors{3}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 3');
+    hold off;
+    xlabel('Time (\mus)');
+    ylabel('Gate Current I_G (A)');
+    title('Per-MOSFET Gate Currents - Full Sample Window');
+    legend('Location', 'best');
+    grid on;
+end
+
+if plt_gate_current_events
+    plot_ig_event(time, I_G1, I_G2, I_G3, VGS1_new, VGS2_new, VGS3_new, ...
+                  time_sim, IG1_sim, IG2_sim, IG3_sim, VGS1_sim, VGS2_sim, VGS3_sim, ...
+                  T1,     'Switch-Off', colors, timewindow);
+    plot_ig_event(time, I_G1, I_G2, I_G3, VGS1_new, VGS2_new, VGS3_new, ...
+                  time_sim, IG1_sim, IG2_sim, IG3_sim, VGS1_sim, VGS2_sim, VGS3_sim, ...
+                  T1+T2,  'Switch-On',  colors, timewindow);
+end
+
+if plt_vgs_compare
+    plot_vgs_compare(time, VGS1,     VGS2,     VGS3, ...
+                     time, VGS1_new, VGS2_new, VGS3_new, ...
+                     T1,    'Switch-Off', colors, timewindow);
+    plot_vgs_compare(time, VGS1,     VGS2,     VGS3, ...
+                     time, VGS1_new, VGS2_new, VGS3_new, ...
+                     T1+T2, 'Switch-On',  colors, timewindow);
+end
+
+%% Section 6: Rogowski Coil Correction [EDIT AS NEEDED]
+% All signals share the same timebase - add or subtract I_G terms directly.
+>>>>>>> parent of fac3db5 (logic signal checks)
 % Default: no correction applied.
 
 I_total_corr = I_total;
@@ -289,7 +379,13 @@ function plot_vgs_compare(t_orig, VGS1_orig, VGS2_orig, VGS3_orig, ...
     end
 end
 
+<<<<<<< HEAD
 function plot_ig_event(t, I_G1, I_G2, I_G3, VGS1, VGS2, VGS3, t_event_us, label, colors)
+=======
+function plot_ig_event(t, I_G1, I_G2, I_G3, VGS1, VGS2, VGS3, ...
+                       t_sim, IG1_sim, IG2_sim, IG3_sim, VGS1_sim, VGS2_sim, VGS3_sim, ...
+                       t_event_us, label, colors, timewindow)
+>>>>>>> parent of fac3db5 (logic signal checks)
     t_start = t_event_us * 1e-6;
     t_end   = t_start + 1150e-9;
     mask    = t >= t_start & t <= t_end;
@@ -301,9 +397,18 @@ function plot_ig_event(t, I_G1, I_G2, I_G3, VGS1, VGS2, VGS3, t_event_us, label,
 
     nexttile;
     hold on;
+<<<<<<< HEAD
     plot(t_ns, I_G1(mask), 'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 1');
     plot(t_ns, I_G2(mask), 'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 2');
     plot(t_ns, I_G3(mask), 'Color', colors{3}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 3');
+=======
+    plot(t_ns,     VGS1(mask),         '-',  'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'M1 empirical');
+    plot(t_ns,     VGS2(mask),         '-',  'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'M2 empirical');
+    plot(t_ns,     VGS3(mask),         '-',  'Color', colors{3}, 'LineWidth', 1.5, 'DisplayName', 'M3 empirical');
+    plot(t_ns_sim, VGS1_sim(mask_sim), '--', 'Color', colors{1}, 'LineWidth', 1.2, 'DisplayName', 'M1 simulation');
+    plot(t_ns_sim, VGS2_sim(mask_sim), '--', 'Color', colors{2}, 'LineWidth', 1.2, 'DisplayName', 'M2 simulation');
+    plot(t_ns_sim, VGS3_sim(mask_sim), '--', 'Color', colors{3}, 'LineWidth', 1.2, 'DisplayName', 'M3 simulation');
+>>>>>>> parent of fac3db5 (logic signal checks)
     hold off;
     ylabel('Gate Current I_G (A)');
     legend('Location', 'best');
