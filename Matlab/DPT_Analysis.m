@@ -1,4 +1,4 @@
-%% DPT Waveform Analysis — Paralleled MOSFET Current Imbalance
+%% DPT Waveform Analysis - Paralleled MOSFET Current Imbalance
 % Imports CH1–CH4 from 3 DPT test folders, deduces per-MOSFET drain currents
 % via rogowski coil subtraction, and plots I_D, I_G and V_GS during switch-off
 % and switch-on events over a 1150 ns window.
@@ -11,9 +11,9 @@
 
 %% DPT Timing & Circuit Parameters
 
-T1  = 35;   % first pulse duration (µs) — switch-off event occurs at T1
+T1  = 35;   % first pulse duration (µs) - switch-off event occurs at T1
 T2  = 5;    % dead time duration (µs)
-T3  = 5;    % second pulse duration (µs) — switch-on event occurs at T1+T2
+T3  = 5;    % second pulse duration (µs) - switch-on event occurs at T1+T2
 R_G = 5.1;  % gate resistance (Ohms)
 
 timewindow = 1150;
@@ -21,6 +21,18 @@ timewindow = 1150;
 % Consistent MOSFET colours: blue / orange-red / green
 colors = {[0 0.447 0.741], [0.850 0.325 0.098], [0.466 0.674 0.188]};
 
+
+%% Plot Control Flags
+% Set to true/false to enable/disable each figure group
+
+plt_gate_current_full    = false;   % "Full Sample Window - Gate Currents"
+plt_gate_current_events  = true;   % "Gate Current - Switch-Off/On"
+plt_vgs_compare          = true;   % "VGS Comparison - Switch-Off/On"
+plt_raw_rogowski_events  = false;   % "Raw Rogowski & Gate Currents - Switch-Off/On"
+plt_corr_rogowski_events = false;   % "Corrected Rogowski - Switch-Off/On"
+plt_raw_rogowski_full    = false;   % "Full Sample Window - Raw Rogowski Measurements"
+plt_drain_current_full   = false;   % "Full Sample Window - Drain Currents"
+plt_drain_current_events = true;   % "Switch-Off/On" drain current + VGS
 
 %% Section 1: Paths and Folder Definitions
 
@@ -104,46 +116,51 @@ IGS3_sim   = sim_raw{:,15};
 
 %% Section 5: EMPIRICAL Gate Current Plots
 
-% Full sample window
-figure('Name', 'Full Sample Window — Gate Currents', 'NumberTitle', 'off');
-hold on;
-plot(time * 1e6, I_G1, 'Color', colors{1}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 1');
-plot(time * 1e6, I_G2, 'Color', colors{2}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 2');
-plot(time * 1e6, I_G3, 'Color', colors{3}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 3');
-hold off;
-xlabel('Time (\mus)');
-ylabel('Gate Current I_G (A)');
-title('Per-MOSFET Gate Currents — Full Sample Window');
-legend('Location', 'best');
-grid on;
+if plt_gate_current_full
+    figure('Name', 'Full Sample Window - Gate Currents', 'NumberTitle', 'off');
+    hold on;
+    plot(time * 1e6, I_G1, 'Color', colors{1}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 1');
+    plot(time * 1e6, I_G2, 'Color', colors{2}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 2');
+    plot(time * 1e6, I_G3, 'Color', colors{3}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 3');
+    hold off;
+    xlabel('Time (\mus)');
+    ylabel('Gate Current I_G (A)');
+    title('Per-MOSFET Gate Currents - Full Sample Window');
+    legend('Location', 'best');
+    grid on;
+end
 
-% Switching event windows
-plot_ig_event(time, I_G1, I_G2, I_G3, VGS1_new, VGS2_new, VGS3_new, T1,     'Switch-Off', colors);
-plot_ig_event(time, I_G1, I_G2, I_G3, VGS1_new, VGS2_new, VGS3_new, T1+T2, 'Switch-On',  colors);
+if plt_gate_current_events
+    plot_ig_event(time, I_G1, I_G2, I_G3, VGS1_new, VGS2_new, VGS3_new, T1,     'Switch-Off', colors, timewindow);
+    plot_ig_event(time, I_G1, I_G2, I_G3, VGS1_new, VGS2_new, VGS3_new, T1+T2, 'Switch-On',  colors, timewindow);
+end
 
-% VGS comparison: original vs re-measured
-plot_vgs_compare(time, VGS1,     VGS2,     VGS3, ...
-                 time, VGS1_new, VGS2_new, VGS3_new, ...
-                 T1,    'Switch-Off', colors);
-plot_vgs_compare(time, VGS1,     VGS2,     VGS3, ...
-                 time, VGS1_new, VGS2_new, VGS3_new, ...
-                 T1+T2, 'Switch-On',  colors);
+if plt_vgs_compare
+    plot_vgs_compare(time, VGS1,     VGS2,     VGS3, ...
+                     time, VGS1_new, VGS2_new, VGS3_new, ...
+                     T1,    'Switch-Off', colors, timewindow);
+    plot_vgs_compare(time, VGS1,     VGS2,     VGS3, ...
+                     time, VGS1_new, VGS2_new, VGS3_new, ...
+                     T1+T2, 'Switch-On',  colors, timewindow);
+end
 
 %% Section 6: Rogowski Coil Correction [EDIT AS NEEDED]
-% All signals share the same timebase — add or subtract I_G terms directly.
+% All signals share the same timebase - add or subtract I_G terms directly.
 % Default: no correction applied.
 
 I_total_corr = I_total;
 I_23_corr    = I_23;
 I_3_corr     = I_3;
 
-% Uncorrected rogowski signals with gate currents overlaid — switching event windows
-plot_raw_and_ig_event(time, I_total, I_23, I_3, I_G1, I_G2, I_G3, T1,     'Switch-Off', colors);
-plot_raw_and_ig_event(time, I_total, I_23, I_3, I_G1, I_G2, I_G3, T1+T2,  'Switch-On',  colors);
+if plt_raw_rogowski_events
+    plot_raw_and_ig_event(time, I_total, I_23, I_3, I_G1, I_G2, I_G3, T1,     'Switch-Off', colors, timewindow);
+    plot_raw_and_ig_event(time, I_total, I_23, I_3, I_G1, I_G2, I_G3, T1+T2,  'Switch-On',  colors, timewindow);
+end
 
-% Corrected rogowski signals — switching event windows
-plot_corr_event(time, I_total_corr, I_23_corr, I_3_corr, T1,     'Switch-Off', colors);
-plot_corr_event(time, I_total_corr, I_23_corr, I_3_corr, T1+T2,  'Switch-On',  colors);
+if plt_corr_rogowski_events
+    plot_corr_event(time, I_total_corr, I_23_corr, I_3_corr, T1,     'Switch-Off', colors, timewindow);
+    plot_corr_event(time, I_total_corr, I_23_corr, I_3_corr, T1+T2,  'Switch-On',  colors, timewindow);
+end
 
 %% Section 7: Per-MOSFET Drain Current Deduction
 
@@ -153,35 +170,38 @@ I_D1 = I_total_corr - I_23_corr;
 
 %% Section 8: Drain Current Plots
 
-% Raw rogowski coil measurements — full sample window
-figure('Name', 'Full Sample Window — Raw Rogowski Measurements', 'NumberTitle', 'off');
-hold on;
-plot(time * 1e6, I_total, 'Color', colors{1}, 'LineWidth', 1.2, 'DisplayName', 'I_{total} (all 3 MOSFETs)');
-plot(time * 1e6, I_23,    'Color', colors{2}, 'LineWidth', 1.2, 'DisplayName', 'I_{D2+D3}');
-plot(time * 1e6, I_3,     'Color', colors{3}, 'LineWidth', 1.2, 'DisplayName', 'I_{D3}');
-hold off;
-xlabel('Time (\mus)');
-ylabel('Current (A)');
-title('Raw Rogowski Coil Measurements — Full Sample Window');
-legend('Location', 'best');
-grid on;
+if plt_raw_rogowski_full
+    figure('Name', 'Full Sample Window - Raw Rogowski Measurements', 'NumberTitle', 'off');
+    hold on;
+    plot(time * 1e6, I_total, 'Color', colors{1}, 'LineWidth', 1.2, 'DisplayName', 'I_{total} (all 3 MOSFETs)');
+    plot(time * 1e6, I_23,    'Color', colors{2}, 'LineWidth', 1.2, 'DisplayName', 'I_{D2+D3}');
+    plot(time * 1e6, I_3,     'Color', colors{3}, 'LineWidth', 1.2, 'DisplayName', 'I_{D3}');
+    hold off;
+    xlabel('Time (\mus)');
+    ylabel('Current (A)');
+    title('Raw Rogowski Coil Measurements - Full Sample Window');
+    legend('Location', 'best');
+    grid on;
+end
 
-% Deduced per-MOSFET drain currents — full sample window
-figure('Name', 'Full Sample Window — Drain Currents', 'NumberTitle', 'off');
-hold on;
-plot(time * 1e6, I_D1, 'Color', colors{1}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 1');
-plot(time * 1e6, I_D2, 'Color', colors{2}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 2');
-plot(time * 1e6, I_D3, 'Color', colors{3}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 3');
-hold off;
-xlabel('Time (\mus)');
-ylabel('Drain Current I_D (A)');
-title('Per-MOSFET Drain Currents — Full Sample Window');
-legend('Location', 'best');
-grid on;
+if plt_drain_current_full
+    figure('Name', 'Full Sample Window - Drain Currents', 'NumberTitle', 'off');
+    hold on;
+    plot(time * 1e6, I_D1, 'Color', colors{1}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 1');
+    plot(time * 1e6, I_D2, 'Color', colors{2}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 2');
+    plot(time * 1e6, I_D3, 'Color', colors{3}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 3');
+    hold off;
+    xlabel('Time (\mus)');
+    ylabel('Drain Current I_D (A)');
+    title('Per-MOSFET Drain Currents - Full Sample Window');
+    legend('Location', 'best');
+    grid on;
+end
 
-% Switching event windows
-plot_event(time, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, T1,     'Switch-Off', colors);
-plot_event(time, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, T1+T2,  'Switch-On',  colors);
+if plt_drain_current_events
+    plot_event(time, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, T1,     'V_{GS} I_{DS} - Switch-Off', colors, timewindow);
+    plot_event(time, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, T1+T2,  'V_{GS} I_{DS} - Switch-On',  colors, timewindow);
+end
 
 %% -------------------------------------------------------------------------
 %  Local Functions
@@ -193,13 +213,13 @@ function [t, v] = load_csv(filepath)
     v = data(:, 2);
 end
 
-function plot_raw_and_ig_event(t, I_total, I_23, I_3, I_G1, I_G2, I_G3, t_event_us, label, colors)
+function plot_raw_and_ig_event(t, I_total, I_23, I_3, I_G1, I_G2, I_G3, t_event_us, label, colors, timewindow)
     t_start = t_event_us * 1e-6;
     t_end   = t_start + 1150e-9;
     mask    = t >= t_start & t <= t_end;
     t_ns    = (t(mask) - t_start) * 1e9;
 
-    figure('Name', ['Raw Rogowski & Gate Currents — ' label], 'NumberTitle', 'off');
+    figure('Name', ['Raw Rogowski & Gate Currents - ' label], 'NumberTitle', 'off');
     hold on;
     plot(t_ns, I_total(mask), '-',  'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'I_{total}');
     plot(t_ns, I_23(mask),    '-',  'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'I_{23}');
@@ -210,19 +230,19 @@ function plot_raw_and_ig_event(t, I_total, I_23, I_3, I_G1, I_G2, I_G3, t_event_
     hold off;
     xlabel('Time (ns)');
     ylabel('Current (A)');
-    title(['Raw Rogowski & Gate Currents — ' label]);
+    title(['Raw Rogowski & Gate Currents - ' label]);
     legend('Location', 'best');
     xlim([0, timewindow]);
     grid on;
 end
 
-function plot_corr_event(t, I_total_corr, I_23_corr, I_3_corr, t_event_us, label, colors)
+function plot_corr_event(t, I_total_corr, I_23_corr, I_3_corr, t_event_us, label, colors, timewindow)
     t_start = t_event_us * 1e-6;
     t_end   = t_start + 1150e-9;
     mask    = t >= t_start & t <= t_end;
     t_ns    = (t(mask) - t_start) * 1e9;
 
-    figure('Name', ['Corrected Rogowski — ' label], 'NumberTitle', 'off');
+    figure('Name', ['Corrected Rogowski - ' label], 'NumberTitle', 'off');
     hold on;
     plot(t_ns, I_total_corr(mask), 'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'I_{total,corr}');
     plot(t_ns, I_23_corr(mask),    'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'I_{23,corr}');
@@ -230,7 +250,7 @@ function plot_corr_event(t, I_total_corr, I_23_corr, I_3_corr, t_event_us, label
     hold off;
     xlabel('Time (ns)');
     ylabel('Current (A)');
-    title(['Corrected Rogowski Signals — ' label]);
+    title(['Corrected Rogowski Signals - ' label]);
     legend('Location', 'best');
     xlim([0, timewindow]);
     grid on;
@@ -238,7 +258,7 @@ end
 
 function plot_vgs_compare(t_orig, VGS1_orig, VGS2_orig, VGS3_orig, ...
                           t_new,  VGS1_new,  VGS2_new,  VGS3_new, ...
-                          t_event_us, label, colors)
+                          t_event_us, label, colors, timewindow)
     t_start  = t_event_us * 1e-6;
     t_end    = t_start + 1150e-9;
     mk_orig  = t_orig >= t_start & t_orig <= t_end;
@@ -250,9 +270,9 @@ function plot_vgs_compare(t_orig, VGS1_orig, VGS2_orig, VGS3_orig, ...
     vgs_new  = {VGS1_new,  VGS2_new,  VGS3_new};
     labels   = {'MOSFET 1', 'MOSFET 2', 'MOSFET 3'};
 
-    figure('Name', ['VGS Comparison — ' label], 'NumberTitle', 'off');
+    figure('Name', ['VGS Comparison - ' label], 'NumberTitle', 'off');
     tl = tiledlayout(3, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
-    title(tl, ['V_{GS} Comparison — ' label], 'FontWeight', 'bold');
+    title(tl, ['V_{GS} Comparison - ' label], 'FontWeight', 'bold');
 
     for k = 1:3
         nexttile;
@@ -271,15 +291,27 @@ function plot_vgs_compare(t_orig, VGS1_orig, VGS2_orig, VGS3_orig, ...
     end
 end
 
-function plot_ig_event(t, I_G1, I_G2, I_G3, VGS1, VGS2, VGS3, t_event_us, label, colors)
+function plot_ig_event(t, I_G1, I_G2, I_G3, VGS1, VGS2, VGS3, t_event_us, label, colors, timewindow)
     t_start = t_event_us * 1e-6;
     t_end   = t_start + 1150e-9;
     mask    = t >= t_start & t <= t_end;
     t_ns    = (t(mask) - t_start) * 1e9;
 
-    figure('Name', ['Gate Current — ' label], 'NumberTitle', 'off');
+    figure('Name', ['Gate V/I - ' label], 'NumberTitle', 'off');
     tl = tiledlayout(2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
-    title(tl, ['Gate Current — ' label], 'FontWeight', 'bold');
+    title(tl, ['Gate V/I - ' label], 'FontWeight', 'bold');
+
+    nexttile;
+    hold on;
+    plot(t_ns, VGS1(mask), 'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 1');
+    plot(t_ns, VGS2(mask), 'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 2');
+    plot(t_ns, VGS3(mask), 'Color', colors{3}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 3');
+    hold off;
+    xlabel('Time (ns)');
+    ylabel('V_{GS} (V)');
+    legend('Location', 'best');
+    xlim([0, timewindow]);
+    grid on;
 
     nexttile;
     hold on;
@@ -291,21 +323,9 @@ function plot_ig_event(t, I_G1, I_G2, I_G3, VGS1, VGS2, VGS3, t_event_us, label,
     legend('Location', 'best');
     xlim([0, timewindow]);
     grid on;
-
-    nexttile;
-    hold on;
-    plot(t_ns, VGS1(mask), 'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 1');
-    plot(t_ns, VGS2(mask), 'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 2');
-    plot(t_ns, VGS3(mask), 'Color', colors{3}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 3');
-    hold off;
-    xlabel('Time (ns)');
-    ylabel('V_{GS} (V)');
-    legend('Location', 'best');
-    xlim([0, timewindow]);
-    grid on;
 end
 
-function plot_event(t, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, t_event_us, label, colors)
+function plot_event(t, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, t_event_us, label, colors, timewindow)
     t_start = t_event_us * 1e-6;
     t_end   = t_start + 1150e-9;
     mask    = t >= t_start & t <= t_end;
@@ -317,23 +337,23 @@ function plot_event(t, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, t_event_us, label, co
 
     nexttile;
     hold on;
-    plot(t_ns, I_D1(mask), 'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 1');
-    plot(t_ns, I_D2(mask), 'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 2');
-    plot(t_ns, I_D3(mask), 'Color', colors{3}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 3');
-    hold off;
-    ylabel('Drain Current I_D (A)');
-    legend('Location', 'best');
-    xlim([0, timewindow]);
-    grid on;
-
-    nexttile;
-    hold on;
     plot(t_ns, VGS1(mask), 'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 1');
     plot(t_ns, VGS2(mask), 'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 2');
     plot(t_ns, VGS3(mask), 'Color', colors{3}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 3');
     hold off;
     xlabel('Time (ns)');
     ylabel('V_{GS} (V)');
+    legend('Location', 'best');
+    xlim([0, timewindow]);
+    grid on;
+
+    nexttile;
+    hold on;
+    plot(t_ns, I_D1(mask), 'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 1');
+    plot(t_ns, I_D2(mask), 'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 2');
+    plot(t_ns, I_D3(mask), 'Color', colors{3}, 'LineWidth', 1.5, 'DisplayName', 'MOSFET 3');
+    hold off;
+    ylabel('Drain Current I_D (A)');
     legend('Location', 'best');
     xlim([0, timewindow]);
     grid on;
