@@ -10,11 +10,10 @@
 
 %% Timing & Circuit Parameters
 
-T1     = 35;   % first pulse duration (µs) — switch-off event occurs at T1
-T2     = 5;    % dead time duration (µs)
-T3     = 5;    % second pulse duration (µs) — switch-on event occurs at T1+T2
-R_G    = 5.1;  % gate resistance (Ohms)
-VGS_ss = 15;   % steady-state gate drive voltage (V)
+T1  = 35;   % first pulse duration (µs) — switch-off event occurs at T1
+T2  = 5;    % dead time duration (µs)
+T3  = 5;    % second pulse duration (µs) — switch-on event occurs at T1+T2
+R_G = 5.1;  % gate resistance (Ohms)
 
 sim_timeoffset = 9.9581e-6
 % sim_timeoffset = 0
@@ -230,49 +229,6 @@ grid on;
 plot_event(time, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, T1,     'Switch-Off', colors);
 plot_event(time, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, T1+T2,  'Switch-On',  colors);
 
-%% Section 9: VDS & I_Dtotal — Report Figure
-% Uses VGS1 and VDS1 as timing references (MOSFET 1 is primary).
-% Search windows: 1000 ns after each event — identical to DPT_SwitchingMetrics.
-
-% Steady-state references
-VDS_off_ss = sample_at(time, VDS1,         (T1 + 1)       * 1e-6);
-I_ss_off   = sample_at(time, I_total_corr,  T1             * 1e-6);
-VDS_on_ss  = sample_at(time, VDS1,         (T1 + T2)       * 1e-6);
-I_ss_on    = sample_at(time, I_total_corr, (T1 + T2 + 1)   * 1e-6);
-
-% Search windows
-w_off1 = T1        * 1e-6;   w_off2 = (T1 + 1)     * 1e-6;
-w_on1  = (T1 + T2) * 1e-6;   w_on2  = (T1 + T2 + 1)* 1e-6;
-
-% Turn-off threshold crossings
-t_VDS_10up = find_crossing(time, VDS1,         0.10 * VDS_off_ss, +1, w_off1, w_off2);
-t_VDS_90up = find_crossing(time, VDS1,         0.90 * VDS_off_ss, +1, w_off1, w_off2);
-t_I_90dn   = find_crossing(time, I_total_corr, 0.90 * I_ss_off,   -1, w_off1, w_off2);
-t_I_10dn   = find_crossing(time, I_total_corr, 0.10 * I_ss_off,   -1, w_off1, w_off2);
-t_VGS_90   = find_crossing(time, VGS1,         0.90 * VGS_ss,     -1, w_off1, w_off2);
-
-% Turn-on threshold crossings
-t_VDS_90dn = find_crossing(time, VDS1,         0.90 * VDS_on_ss,  -1, w_on1, w_on2);
-t_VDS_10dn = find_crossing(time, VDS1,         0.10 * VDS_on_ss,  -1, w_on1, w_on2);
-t_I_10up   = find_crossing(time, I_total_corr, 0.10 * I_ss_on,    +1, w_on1, w_on2);
-t_I_90up   = find_crossing(time, I_total_corr, 0.90 * I_ss_on,    +1, w_on1, w_on2);
-t_VGS_10   = find_crossing(time, VGS1,         0.10 * VGS_ss,     +1, w_on1, w_on2);
-
-% Pack into structs
-off_pts = struct('VDS_ss', VDS_off_ss, 'I_ss', I_ss_off, ...
-    't_VDS_10', t_VDS_10up, 't_VDS_90', t_VDS_90up, ...
-    't_I_90',   t_I_90dn,   't_I_10',   t_I_10dn, ...
-    't_d_ns',   (t_VDS_10up - t_VGS_90)  * 1e9, ...
-    't_sw_ns',  (t_VDS_90up - t_VDS_10up)* 1e9);
-
-on_pts = struct('VDS_ss', VDS_on_ss, 'I_ss', I_ss_on, ...
-    't_VDS_90', t_VDS_90dn, 't_VDS_10', t_VDS_10dn, ...
-    't_I_10',   t_I_10up,   't_I_90',   t_I_90up, ...
-    't_d_ns',   (t_VDS_90dn - t_VGS_10)  * 1e9, ...
-    't_sw_ns',  (t_VDS_10dn - t_VDS_90dn)* 1e9);
-
-plot_vds_id_report(time, VDS1, I_total_corr, T1, T2, off_pts, on_pts);
-
 %% -------------------------------------------------------------------------
 %  Local Functions
 %% -------------------------------------------------------------------------
@@ -401,7 +357,6 @@ function plot_ig_event(t, I_G1, I_G2, I_G3, VGS1, VGS2, VGS3, ...
 end
 
 function plot_event(t, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, t_event_us, label, colors)
-
     t_start = t_event_us * 1e-6;
     t_end   = t_start + 1150e-9;
     mask    = t >= t_start & t <= t_end;
@@ -433,112 +388,4 @@ function plot_event(t, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, t_event_us, label, co
     legend('Location', 'best');
     xlim([0, 1150]);
     grid on;
-end
-
-function plot_vds_id_report(time, VDS, I_D, T1, T2, off_pts, on_pts)
-% Report-quality double-column figure: V_DS (left y) and I_{D,total} (right y)
-% for turn-off and turn-on events side by side.
-
-    t_off = T1        * 1e-6;
-    t_on  = (T1 + T2) * 1e-6;
-    win   = 1e-6;
-
-    mk_off = time >= t_off & time <= (t_off + win);
-    mk_on  = time >= t_on  & time <= (t_on  + win);
-    ns_off = @(t) (t - t_off) * 1e9;
-    ns_on  = @(t) (t - t_on)  * 1e9;
-    xlims  = [0, win * 1e9];
-
-    c_vds = [0.20 0.40 0.80];
-    c_id  = [0.80 0.30 0.10];
-    fs    = 8;    % font size (pt) — matches IEEE body text
-    lw    = 1.2;  % line width
-
-    fig = figure('Name', 'VDS & I_Dtotal — Report', 'NumberTitle', 'off');
-    fig.Units    = 'centimeters';
-    fig.Position = [2 2 18.5 7.5];   % double-column width × compact height
-
-    tl = tiledlayout(1, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
-
-    % ---- Tile 1: Turn-Off ----
-    ax1 = nexttile(1);
-    yyaxis left;  hold on;
-    plot(ns_off(time(mk_off)), VDS(mk_off), 'Color', c_vds, 'LineWidth', lw);
-    yline(0.10 * off_pts.VDS_ss, '--', 'Color', c_vds, 'LineWidth', 0.7, 'HandleVisibility', 'off');
-    yline(0.90 * off_pts.VDS_ss, '--', 'Color', c_vds, 'LineWidth', 0.7, 'HandleVisibility', 'off');
-    if ~isnan(off_pts.t_VDS_10)
-        scatter(ns_off(off_pts.t_VDS_10), sample_at(time, VDS, off_pts.t_VDS_10), 30, c_vds, 'filled', 'HandleVisibility', 'off');
-    end
-    if ~isnan(off_pts.t_VDS_90)
-        scatter(ns_off(off_pts.t_VDS_90), sample_at(time, VDS, off_pts.t_VDS_90), 30, c_vds, 'filled', 'HandleVisibility', 'off');
-    end
-    ylabel('V_{DS} (V)', 'FontSize', fs);
-    yyaxis right;  hold on;
-    plot(ns_off(time(mk_off)), I_D(mk_off), 'Color', c_id, 'LineWidth', lw);
-    yline(0.90 * off_pts.I_ss, '--', 'Color', c_id, 'LineWidth', 0.7, 'HandleVisibility', 'off');
-    yline(0.10 * off_pts.I_ss, '--', 'Color', c_id, 'LineWidth', 0.7, 'HandleVisibility', 'off');
-    if ~isnan(off_pts.t_I_90)
-        scatter(ns_off(off_pts.t_I_90), sample_at(time, I_D, off_pts.t_I_90), 30, c_id, 'filled', 'HandleVisibility', 'off');
-    end
-    if ~isnan(off_pts.t_I_10)
-        scatter(ns_off(off_pts.t_I_10), sample_at(time, I_D, off_pts.t_I_10), 30, c_id, 'filled', 'HandleVisibility', 'off');
-    end
-    ylabel('I_{D} (A)', 'FontSize', fs);
-    ax1.YAxis(1).Color = c_vds;  ax1.YAxis(2).Color = c_id;
-    xlim(xlims);  grid on;  ax1.FontSize = fs;
-    xlabel('Time (ns)', 'FontSize', fs);
-    title(sprintf('Turn-Off  —  t_d = %.0f ns,  t_f = %.0f ns', off_pts.t_d_ns, off_pts.t_sw_ns), ...
-          'FontSize', fs, 'FontWeight', 'normal');
-
-    % ---- Tile 2: Turn-On ----
-    ax2 = nexttile(2);
-    yyaxis left;  hold on;
-    plot(ns_on(time(mk_on)), VDS(mk_on), 'Color', c_vds, 'LineWidth', lw);
-    yline(0.90 * on_pts.VDS_ss, '--', 'Color', c_vds, 'LineWidth', 0.7, 'HandleVisibility', 'off');
-    yline(0.10 * on_pts.VDS_ss, '--', 'Color', c_vds, 'LineWidth', 0.7, 'HandleVisibility', 'off');
-    if ~isnan(on_pts.t_VDS_90)
-        scatter(ns_on(on_pts.t_VDS_90), sample_at(time, VDS, on_pts.t_VDS_90), 30, c_vds, 'filled', 'HandleVisibility', 'off');
-    end
-    if ~isnan(on_pts.t_VDS_10)
-        scatter(ns_on(on_pts.t_VDS_10), sample_at(time, VDS, on_pts.t_VDS_10), 30, c_vds, 'filled', 'HandleVisibility', 'off');
-    end
-    ylabel('V_{DS} (V)', 'FontSize', fs);
-    yyaxis right;  hold on;
-    plot(ns_on(time(mk_on)), I_D(mk_on), 'Color', c_id, 'LineWidth', lw);
-    yline(0.10 * on_pts.I_ss, '--', 'Color', c_id, 'LineWidth', 0.7, 'HandleVisibility', 'off');
-    yline(0.90 * on_pts.I_ss, '--', 'Color', c_id, 'LineWidth', 0.7, 'HandleVisibility', 'off');
-    if ~isnan(on_pts.t_I_10)
-        scatter(ns_on(on_pts.t_I_10), sample_at(time, I_D, on_pts.t_I_10), 30, c_id, 'filled', 'HandleVisibility', 'off');
-    end
-    if ~isnan(on_pts.t_I_90)
-        scatter(ns_on(on_pts.t_I_90), sample_at(time, I_D, on_pts.t_I_90), 30, c_id, 'filled', 'HandleVisibility', 'off');
-    end
-    ylabel('I_{D} (A)', 'FontSize', fs);
-    ax2.YAxis(1).Color = c_vds;  ax2.YAxis(2).Color = c_id;
-    xlim(xlims);  grid on;  ax2.FontSize = fs;
-    xlabel('Time (ns)', 'FontSize', fs);
-    title(sprintf('Turn-On  —  t_d = %.0f ns,  t_r = %.0f ns', on_pts.t_d_ns, on_pts.t_sw_ns), ...
-          'FontSize', fs, 'FontWeight', 'normal');
-
-    % ---- Equalise y-scales across both tiles then zero-align ----
-    % Read auto-scaled limits from each tile
-    yyaxis(ax1, 'left');   yl1L = ylim(ax1);
-    yyaxis(ax1, 'right');  yl1R = ylim(ax1);
-    yyaxis(ax2, 'left');   yl2L = ylim(ax2);
-    yyaxis(ax2, 'right');  yl2R = ylim(ax2);
-
-    % Union: widest range that covers both tiles
-    ylL = [min(yl1L(1), yl2L(1)), max(yl1L(2), yl2L(2))];
-    ylR = [min(yl1R(1), yl2R(1)), max(yl1R(2), yl2R(2))];
-
-    % Apply union to ax1, zero-align, then read back the final limits
-    yyaxis(ax1, 'left');  ylim(ax1, ylL);
-    yyaxis(ax1, 'right'); ylim(ax1, ylR);
-    align_yyaxis_zeros(ax1);
-    yyaxis(ax1, 'left');  ylL_f = ylim(ax1);
-    yyaxis(ax1, 'right'); ylR_f = ylim(ax1);
-
-    % Copy identical limits to ax2 (zero alignment is automatic since limits match ax1)
-    yyaxis(ax2, 'left');  ylim(ax2, ylL_f);
-    yyaxis(ax2, 'right'); ylim(ax2, ylR_f);
 end
