@@ -10,4 +10,10 @@ devlog
 
 ### LTspice .csv data import
 automate time alignment
+    - recover single paramter LTspice>MATLAB code
     - alignment point: 10% of gate voltage rise/fall DONE
+    - change to 1% rise/fall
+    - independetly align each parameter sweep dataseries
+    - fix plotting of steps.
+
+- verbose instruction for assigning parameter steps IN PROGRESS
