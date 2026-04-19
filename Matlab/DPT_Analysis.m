@@ -4,9 +4,10 @@
 % and switch-on events over a 1150 ns window.
 
 %% Timeseries alignment strategy
-% DPT pulsetrain is identical between empirical and simulation, but absolute timestamps are not. 
-% empirical timestamps are fixed, since they correlate to the physically meaningful logic trigger 3.6 V rising edge
-% LTspice timestamps will have an offset applied IMMEDIATELY after import, such that the timeseries are consistent for further anaylysis
+% DPT pulsetrain periods are identical between empirical and simulation, but absolute timestamps are not. 
+% EMPIRICAL timestamps stay fixed, since they correlate to the physically meaningful logic trigger on a 3.6V T1 rising edge
+% SIMULATION timestamps are different, and simulation doesn't model logic signal or the gate driver chip,
+% hence simulation data will be aligned with 10% changes in the average device gate voltage, such that gate voltage waveforms are consistently timed
 
 close all
 
@@ -17,8 +18,7 @@ T2  = 5;    % dead time duration (µs)
 T3  = 5;    % second pulse duration (µs) — switch-on event occurs at T1+T2
 R_G = 5.1;  % gate resistance (Ohms)
 
-sim_timeoffset = 9.9581e-6
-% sim_timeoffset = 0
+sim_timeoffset = 10e-6 % LTspice allocates 10us before T1 begins
 
 % Consistent MOSFET colours: blue / orange-red / green
 colors = {[0 0.447 0.741], [0.850 0.325 0.098], [0.466 0.674 0.188]};
@@ -39,13 +39,13 @@ colors = {[0 0.447 0.741], [0.850 0.325 0.098], [0.466 0.674 0.188]};
 %% Plot Control Flags
 % Set to true/false to enable/disable each figure group
 
-plt_gate_current_full    = 0;   % "Full Sample Window - Gate Currents"
+plt_gate_current_full    = 1;   % "Full Sample Window - Gate Currents"
 plt_gate_current_events  = 1;   % "Gate Current - Switch-Off/On"
-plt_vgs_compare          = 0;   % "VGS Comparison - Switch-Off/On"
+plt_vgs_compare          = 1;   % "VGS Comparison - Switch-Off/On"
 plt_raw_rogowski_events  = 0;   % "Raw Rogowski & Gate Currents - Switch-Off/On"
 plt_corr_rogowski_events = 0;   % "Corrected Rogowski - Switch-Off/On"
 plt_raw_rogowski_full    = 0;   % "Full Sample Window - Raw Rogowski Measurements"
-plt_drain_current_full   = 0;   % "Full Sample Window - Drain Currents"
+plt_drain_current_full   = 1;   % "Full Sample Window - Drain Currents"
 plt_drain_current_events = 1;   % "Switch-Off/On" drain current + VGS
 
 
@@ -67,6 +67,10 @@ asym_folders = { ...
 load_ch   = @(f, ch) load_csv(fullfile(base_path,  folders{f},      sprintf('CH%d.CSV', ch)));
 load_asym = @(f, ch) load_csv(fullfile(asym_base,  asym_folders{f}, sprintf('CH%d.CSV', ch)));
 
+
+sim_path = fullfile(getenv('USERPROFILE'), 'OneDrive - University of Bristol', 'grp-GRP Group 1002 - Documents', 'DPT Results', 'LTspice exports');
+% sim_file = 'InverterUnbalancedDPT_35-5-5DPT_48VDC_POST_ANALYTICAL_MODEL_allsignals_prePWLtune.csv'
+sim_file = 'InverterUnbalancedDPT_35-5-5DPT_48VDC_POST_ANALYTICAL_MODEL_allsignals.csv'
 
 %% Section 2: Import Rogowski & VGS/VDS Channels
 
@@ -111,7 +115,8 @@ I_G3 = V_RG3 / R_G;
 
 %% Section 4: SIMULATION import LTspice simulation data
 
-ltspice_csv = fullfile(base_path, 'LTspiceExport_35-5-5_48VDC_36uH.csv');
+% ltspice_csv = fullfile(sim_path, 'LTspiceExport_35-5-5_48VDC_36uH.csv');
+ltspice_csv = fullfile(sim_path, sim_file);
 sim_raw = readtable(ltspice_csv);
 
 time_sim   = sim_raw{:,1} - sim_timeoffset;   % offset: shift LTspice timestamps by -10 us
@@ -126,9 +131,68 @@ I_total_sim = sim_raw{:,9};
 ID1_sim   = sim_raw{:,10};
 ID2_sim   = sim_raw{:,11};
 ID3_sim   = sim_raw{:,12};
-IG1_sim   = sim_raw{:,13};
-IG2_sim   = sim_raw{:,14};
-IG3_sim   = sim_raw{:,15};
+I_load_sim = sim_raw{:,13};
+IG1_sim   = sim_raw{:,14};
+IG2_sim   = sim_raw{:,15};
+IG3_sim   = sim_raw{:,16};
+
+
+%% Section 4b: Simulation Event-Specific Alignment
+
+avg_ns = 20e-9;   % averaging window width
+
+VGS_emp_mean = (VGS1 + VGS2 + VGS3) / 3;
+VGS_sim_mean = (VGS1_sim + VGS2_sim + VGS3_sim) / 3;
+
+% Switch-Off: gate falls, event starts at T1
+t_off = T1 * 1e-6;
+
+mask_hi_e   = time >= t_off               & time     <= t_off + avg_ns;
+mask_lo_e   = time >= t_off + 2e-6 - avg_ns & time   <= t_off + 2e-6;
+V_hi_e      = mean(VGS_emp_mean(mask_hi_e));
+V_lo_e      = mean(VGS_emp_mean(mask_lo_e));
+thresh_e    = V_hi_e - 0.1 * (V_hi_e - V_lo_e);
+mask_win_e  = time >= t_off & time <= t_off + 2e-6;
+[~, ix]     = min(abs(VGS_emp_mean(mask_win_e) - thresh_e));
+t_win       = time(mask_win_e);
+t_emp_10pct_off = t_win(ix);
+
+mask_hi_s   = time_sim >= t_off               & time_sim <= t_off + avg_ns;
+mask_lo_s   = time_sim >= t_off + 2e-6 - avg_ns & time_sim <= t_off + 2e-6;
+V_hi_s      = mean(VGS_sim_mean(mask_hi_s));
+V_lo_s      = mean(VGS_sim_mean(mask_lo_s));
+thresh_s    = V_hi_s - 0.1 * (V_hi_s - V_lo_s);
+mask_win_s  = time_sim >= t_off & time_sim <= t_off + 2e-6;
+[~, ix]     = min(abs(VGS_sim_mean(mask_win_s) - thresh_s));
+t_win_s     = time_sim(mask_win_s);
+t_sim_10pct_off = t_win_s(ix);
+
+sim_timeoffset_off = t_sim_10pct_off - t_emp_10pct_off
+
+% Switch-On: gate rises, event starts at T1+T2
+t_on = (T1 + T2) * 1e-6;
+
+mask_lo_e   = time >= t_on               & time     <= t_on + avg_ns;
+mask_hi_e   = time >= t_on + 2e-6 - avg_ns & time   <= t_on + 2e-6;
+V_lo_e      = mean(VGS_emp_mean(mask_lo_e));
+V_hi_e      = mean(VGS_emp_mean(mask_hi_e));
+thresh_e    = V_lo_e + 0.1 * (V_hi_e - V_lo_e);
+mask_win_e  = time >= t_on & time <= t_on + 2e-6;
+[~, ix]     = min(abs(VGS_emp_mean(mask_win_e) - thresh_e));
+t_win       = time(mask_win_e);
+t_emp_10pct_on = t_win(ix);
+
+mask_lo_s   = time_sim >= t_on               & time_sim <= t_on + avg_ns;
+mask_hi_s   = time_sim >= t_on + 2e-6 - avg_ns & time_sim <= t_on + 2e-6;
+V_lo_s      = mean(VGS_sim_mean(mask_lo_s));
+V_hi_s      = mean(VGS_sim_mean(mask_hi_s));
+thresh_s    = V_lo_s + 0.1 * (V_hi_s - V_lo_s);
+mask_win_s  = time_sim >= t_on & time_sim <= t_on + 2e-6;
+[~, ix]     = min(abs(VGS_sim_mean(mask_win_s) - thresh_s));
+t_win_s     = time_sim(mask_win_s);
+t_sim_10pct_on = t_win_s(ix);
+
+sim_timeoffset_on = t_sim_10pct_on - t_emp_10pct_on
 
 
 %% Section 5: Gate Current Plots
@@ -149,19 +213,21 @@ end
 
 if plt_gate_current_events
     plot_ig_event(time, I_G1, I_G2, I_G3, VGS1_new, VGS2_new, VGS3_new, ...
-                  time_sim, IG1_sim, IG2_sim, IG3_sim, VGS1_sim, VGS2_sim, VGS3_sim, ...
+                  time_sim - sim_timeoffset_off, IG1_sim, IG2_sim, IG3_sim, VGS1_sim, VGS2_sim, VGS3_sim, ...
                   T1,     'Switch-Off', colors, timewindow);
     plot_ig_event(time, I_G1, I_G2, I_G3, VGS1_new, VGS2_new, VGS3_new, ...
-                  time_sim, IG1_sim, IG2_sim, IG3_sim, VGS1_sim, VGS2_sim, VGS3_sim, ...
+                  time_sim - sim_timeoffset_on, IG1_sim, IG2_sim, IG3_sim, VGS1_sim, VGS2_sim, VGS3_sim, ...
                   T1+T2,  'Switch-On',  colors, timewindow);
 end
 
 if plt_vgs_compare
     plot_vgs_compare(time, VGS1,     VGS2,     VGS3, ...
                      time, VGS1_new, VGS2_new, VGS3_new, ...
+                     time_sim - sim_timeoffset_off, VGS1_sim, VGS2_sim, VGS3_sim, ...
                      T1,    'Switch-Off', colors, timewindow);
     plot_vgs_compare(time, VGS1,     VGS2,     VGS3, ...
                      time, VGS1_new, VGS2_new, VGS3_new, ...
+                     time_sim - sim_timeoffset_on, VGS1_sim, VGS2_sim, VGS3_sim, ...
                      T1+T2, 'Switch-On',  colors, timewindow);
 end
 
@@ -211,9 +277,12 @@ end
 if plt_drain_current_full
     figure('Name', 'Full Sample Window — Drain Currents', 'NumberTitle', 'off');
     hold on;
-    plot(time * 1e6, I_D1, 'Color', colors{1}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 1');
-    plot(time * 1e6, I_D2, 'Color', colors{2}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 2');
-    plot(time * 1e6, I_D3, 'Color', colors{3}, 'LineWidth', 1.2, 'DisplayName', 'MOSFET 3');
+    plot(time     * 1e6, I_D1,    '-',  'Color', colors{1}, 'LineWidth', 1.2, 'DisplayName', 'M1 empirical');
+    plot(time     * 1e6, I_D2,    '-',  'Color', colors{2}, 'LineWidth', 1.2, 'DisplayName', 'M2 empirical');
+    plot(time     * 1e6, I_D3,    '-',  'Color', colors{3}, 'LineWidth', 1.2, 'DisplayName', 'M3 empirical');
+    plot(time_sim * 1e6, ID1_sim, '--', 'Color', colors{1}, 'LineWidth', 1.2, 'DisplayName', 'M1 simulation');
+    plot(time_sim * 1e6, ID2_sim, '--', 'Color', colors{2}, 'LineWidth', 1.2, 'DisplayName', 'M2 simulation');
+    plot(time_sim * 1e6, ID3_sim, '--', 'Color', colors{3}, 'LineWidth', 1.2, 'DisplayName', 'M3 simulation');
     hold off;
     xlabel('Time (\mus)');
     ylabel('Drain Current I_D (A)');
@@ -224,10 +293,10 @@ end
 
 if plt_drain_current_events
     plot_event(time, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, ...
-               time_sim, ID1_sim, ID2_sim, ID3_sim, VGS1_sim, VGS2_sim, VGS3_sim, ...
+               time_sim - sim_timeoffset_off, ID1_sim, ID2_sim, ID3_sim, VGS1_sim, VGS2_sim, VGS3_sim, ...
                T1,     'Switch-Off', colors, timewindow);
     plot_event(time, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, ...
-               time_sim, ID1_sim, ID2_sim, ID3_sim, VGS1_sim, VGS2_sim, VGS3_sim, ...
+               time_sim - sim_timeoffset_on, ID1_sim, ID2_sim, ID3_sim, VGS1_sim, VGS2_sim, VGS3_sim, ...
                T1+T2,  'Switch-On',  colors, timewindow);
 end
 
@@ -286,16 +355,20 @@ end
 
 function plot_vgs_compare(t_orig, VGS1_orig, VGS2_orig, VGS3_orig, ...
                           t_new,  VGS1_new,  VGS2_new,  VGS3_new, ...
-                          t_event_us, label, colors)
+                          t_sim,  VGS1_sim,  VGS2_sim,  VGS3_sim, ...
+                          t_event_us, label, colors, timewindow)
     t_start  = t_event_us * 1e-6;
-    t_end    = t_start + 1150e-9;
+    t_end    = t_start + timewindow * 1e-9;
     mk_orig  = t_orig >= t_start & t_orig <= t_end;
     mk_new   = t_new  >= t_start & t_new  <= t_end;
+    mk_sim   = t_sim  >= t_start & t_sim  <= t_end;
     t_ns_o   = (t_orig(mk_orig) - t_start) * 1e9;
     t_ns_n   = (t_new(mk_new)   - t_start) * 1e9;
+    t_ns_s   = (t_sim(mk_sim)   - t_start) * 1e9;
 
     vgs_orig = {VGS1_orig, VGS2_orig, VGS3_orig};
     vgs_new  = {VGS1_new,  VGS2_new,  VGS3_new};
+    vgs_sim  = {VGS1_sim,  VGS2_sim,  VGS3_sim};
     labels   = {'MOSFET 1', 'MOSFET 2', 'MOSFET 3'};
 
     figure('Name', ['VGS Comparison — ' label], 'NumberTitle', 'off');
@@ -309,11 +382,13 @@ function plot_vgs_compare(t_orig, VGS1_orig, VGS2_orig, VGS3_orig, ...
              'LineWidth', 1.2, 'DisplayName', 'Original');
         plot(t_ns_n, vgs_new{k}(mk_new),   '-',  'Color', colors{k}, ...
              'LineWidth', 1.5, 'DisplayName', 'Re-measured');
+        plot(t_ns_s, vgs_sim{k}(mk_sim),   ':',  'Color', colors{k}, ...
+             'LineWidth', 1.5, 'DisplayName', 'Simulation');
         hold off;
         title(labels{k});
         ylabel('V_{GS} (V)');
         legend('Location', 'best');
-        xlim([0, 1150]);
+        xlim([0, timewindow]);
         grid on;
         if k == 3, xlabel('Time (ns)'); end
     end
@@ -381,20 +456,6 @@ function plot_event(t, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, ...
 
     nexttile;
     hold on;
-    plot(t_ns,     I_D1(mask),         '-',  'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'M1 empirical');
-    plot(t_ns,     I_D2(mask),         '-',  'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'M2 empirical');
-    plot(t_ns,     I_D3(mask),         '-',  'Color', colors{3}, 'LineWidth', 1.5, 'DisplayName', 'M3 empirical');
-    plot(t_ns_sim, ID1_sim(mask_sim),  '--', 'Color', colors{1}, 'LineWidth', 1.2, 'DisplayName', 'M1 simulation');
-    plot(t_ns_sim, ID2_sim(mask_sim),  '--', 'Color', colors{2}, 'LineWidth', 1.2, 'DisplayName', 'M2 simulation');
-    plot(t_ns_sim, ID3_sim(mask_sim),  '--', 'Color', colors{3}, 'LineWidth', 1.2, 'DisplayName', 'M3 simulation');
-    hold off;
-    ylabel('Drain Current I_D (A)');
-    legend('Location', 'best');
-    xlim([0, timewindow]);
-    grid on;
-
-    nexttile;
-    hold on;
     plot(t_ns,     VGS1(mask),         '-',  'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'M1 empirical');
     plot(t_ns,     VGS2(mask),         '-',  'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'M2 empirical');
     plot(t_ns,     VGS3(mask),         '-',  'Color', colors{3}, 'LineWidth', 1.5, 'DisplayName', 'M3 empirical');
@@ -404,6 +465,20 @@ function plot_event(t, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, ...
     hold off;
     xlabel('Time (ns)');
     ylabel('V_{GS} (V)');
+    legend('Location', 'best');
+    xlim([0, timewindow]);
+    grid on;
+
+    nexttile;
+    hold on;
+    plot(t_ns,     I_D1(mask),         '-',  'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'M1 empirical');
+    plot(t_ns,     I_D2(mask),         '-',  'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'M2 empirical');
+    plot(t_ns,     I_D3(mask),         '-',  'Color', colors{3}, 'LineWidth', 1.5, 'DisplayName', 'M3 empirical');
+    plot(t_ns_sim, ID1_sim(mask_sim),  '--', 'Color', colors{1}, 'LineWidth', 1.2, 'DisplayName', 'M1 simulation');
+    plot(t_ns_sim, ID2_sim(mask_sim),  '--', 'Color', colors{2}, 'LineWidth', 1.2, 'DisplayName', 'M2 simulation');
+    plot(t_ns_sim, ID3_sim(mask_sim),  '--', 'Color', colors{3}, 'LineWidth', 1.2, 'DisplayName', 'M3 simulation');
+    hold off;
+    ylabel('Drain Current I_D (A)');
     legend('Location', 'best');
     xlim([0, timewindow]);
     grid on;

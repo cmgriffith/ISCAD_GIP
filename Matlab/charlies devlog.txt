@@ -1,0 +1,13 @@
+devlog
+ 
+### LTspice model
+- tune PWL voltage to match driver IC datasheet rise/fall times DONE
+- clean LTspice data export pipeline DONE  
+    run, open export scope, save txt data, move to onedrive > MATLAB will access
+- check all parasitics, ESR, orientations, signal nodes etc. DONE
+- indepedent solver settings for the switch events
+
+
+### LTspice .csv data import
+automate time alignment
+    - alignment point: 10% of gate voltage rise/fall DONE
