@@ -1,4 +1,4 @@
-l_bus = 90e-3; % DC Bus Bar Length on Half Bridge
+l_bus = 90``e-3; % DC Bus Bar Length on Half Bridge
 t_bus = 0.6e-3; % DC Bus Bar Thickness
 w_bus = 12e-3; % DC Bus Bar Width
 d_seperation = 12e-3; % DC Bus Bar Seperation
@@ -19,9 +19,9 @@ fprintf('Bus Bar Inductance (L_LCON,L_HCON): %.2f nH\n', L_CON*10^9); % Convert 
 % Mar. 2021, doi: 10.1109/TIA.2020.3048641.
 
 % With new Vertical Layout
-y_powerloop = d_seperation; % Assuming power loop exists in vertical layout and is via'd right on bus edges
+y_powerloop = 25e-3; % Assuming power loop exists in vertical layout and is via'd right on bus edges
 t_PCB = 1.5e-3; % PCB thickness
-w_PCB = 8.7e-3; % Width of MOSFET trace (need to clarify if this is correct!)
+w_PCB = 11e-3; % Width of MOSFET trace (need to clarify if this is correct!)
 
 L_PL = mu_0*t_PCB*y_powerloop*((0.27)/(1-0.74*exp(-0.45*(t_PCB/w_PCB))))/(w_PCB);
 fprintf('Power Loop Inductance (L_PL): %.2f nH\n', L_PL*10^9); % Convert to nano-Henries
@@ -35,5 +35,5 @@ fprintf('Copper Skin Depth at Ringing Frequency (delta_ringing): %.2f microns\n'
 
 
 
-
+L_PL2 = mu_0*t_PCB*y_powerloop/w_PCB
 
