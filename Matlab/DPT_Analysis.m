@@ -43,8 +43,8 @@ plt_gate_current_full    = 1;   % "Full Sample Window - Gate Currents"
 plt_gate_current_events  = 1;   % "Gate Current - Switch-Off/On"
 plt_vgs_compare          = 1;   % "VGS Comparison - Switch-Off/On"
 plt_raw_rogowski_events  = 0;   % "Raw Rogowski & Gate Currents - Switch-Off/On"
-plt_corr_rogowski_events = 0;   % "Corrected Rogowski - Switch-Off/On"
-plt_raw_rogowski_full    = 0;   % "Full Sample Window - Raw Rogowski Measurements"
+plt_corr_rogowski_events = 1;   % "Corrected Rogowski - Switch-Off/On"
+plt_raw_rogowski_full    = 1;   % "Full Sample Window - Raw Rogowski Measurements"
 plt_drain_current_full   = 1;   % "Full Sample Window - Drain Currents"
 plt_drain_current_events = 1;   % "Switch-Off/On" drain current + VGS
 
@@ -115,84 +115,84 @@ I_G3 = V_RG3 / R_G;
 
 %% Section 4: SIMULATION import LTspice simulation data
 
-% ltspice_csv = fullfile(sim_path, 'LTspiceExport_35-5-5_48VDC_36uH.csv');
-ltspice_csv = fullfile(sim_path, sim_file);
-sim_raw = readtable(ltspice_csv);
-
-time_sim   = sim_raw{:,1} - sim_timeoffset;   % offset: shift LTspice timestamps by -10 us
-VDS2_sim   = sim_raw{:,2};
-VDS3_sim   = sim_raw{:,3};
-PWLdriver_sim = sim_raw{:,4};
-VGS1_sim   = sim_raw{:,5};
-VGS2_sim   = sim_raw{:,6};
-VGS3_sim   = sim_raw{:,7};
-VDS1_sim   = sim_raw{:,8};
-I_total_sim = sim_raw{:,9};
-ID1_sim   = sim_raw{:,10};
-ID2_sim   = sim_raw{:,11};
-ID3_sim   = sim_raw{:,12};
-I_load_sim = sim_raw{:,13};
-IG1_sim   = sim_raw{:,14};
-IG2_sim   = sim_raw{:,15};
-IG3_sim   = sim_raw{:,16};
-
-
-%% Section 4b: Simulation Event-Specific Alignment
-
-avg_ns = 20e-9;   % averaging window width
-
-VGS_emp_mean = (VGS1 + VGS2 + VGS3) / 3;
-VGS_sim_mean = (VGS1_sim + VGS2_sim + VGS3_sim) / 3;
-
-% Switch-Off: gate falls, event starts at T1
-t_off = T1 * 1e-6;
-
-mask_hi_e   = time >= t_off               & time     <= t_off + avg_ns;
-mask_lo_e   = time >= t_off + 2e-6 - avg_ns & time   <= t_off + 2e-6;
-V_hi_e      = mean(VGS_emp_mean(mask_hi_e));
-V_lo_e      = mean(VGS_emp_mean(mask_lo_e));
-thresh_e    = V_hi_e - 0.1 * (V_hi_e - V_lo_e);
-mask_win_e  = time >= t_off & time <= t_off + 2e-6;
-[~, ix]     = min(abs(VGS_emp_mean(mask_win_e) - thresh_e));
-t_win       = time(mask_win_e);
-t_emp_10pct_off = t_win(ix);
-
-mask_hi_s   = time_sim >= t_off               & time_sim <= t_off + avg_ns;
-mask_lo_s   = time_sim >= t_off + 2e-6 - avg_ns & time_sim <= t_off + 2e-6;
-V_hi_s      = mean(VGS_sim_mean(mask_hi_s));
-V_lo_s      = mean(VGS_sim_mean(mask_lo_s));
-thresh_s    = V_hi_s - 0.1 * (V_hi_s - V_lo_s);
-mask_win_s  = time_sim >= t_off & time_sim <= t_off + 2e-6;
-[~, ix]     = min(abs(VGS_sim_mean(mask_win_s) - thresh_s));
-t_win_s     = time_sim(mask_win_s);
-t_sim_10pct_off = t_win_s(ix);
-
-sim_timeoffset_off = t_sim_10pct_off - t_emp_10pct_off
-
-% Switch-On: gate rises, event starts at T1+T2
-t_on = (T1 + T2) * 1e-6;
-
-mask_lo_e   = time >= t_on               & time     <= t_on + avg_ns;
-mask_hi_e   = time >= t_on + 2e-6 - avg_ns & time   <= t_on + 2e-6;
-V_lo_e      = mean(VGS_emp_mean(mask_lo_e));
-V_hi_e      = mean(VGS_emp_mean(mask_hi_e));
-thresh_e    = V_lo_e + 0.1 * (V_hi_e - V_lo_e);
-mask_win_e  = time >= t_on & time <= t_on + 2e-6;
-[~, ix]     = min(abs(VGS_emp_mean(mask_win_e) - thresh_e));
-t_win       = time(mask_win_e);
-t_emp_10pct_on = t_win(ix);
-
-mask_lo_s   = time_sim >= t_on               & time_sim <= t_on + avg_ns;
-mask_hi_s   = time_sim >= t_on + 2e-6 - avg_ns & time_sim <= t_on + 2e-6;
-V_lo_s      = mean(VGS_sim_mean(mask_lo_s));
-V_hi_s      = mean(VGS_sim_mean(mask_hi_s));
-thresh_s    = V_lo_s + 0.1 * (V_hi_s - V_lo_s);
-mask_win_s  = time_sim >= t_on & time_sim <= t_on + 2e-6;
-[~, ix]     = min(abs(VGS_sim_mean(mask_win_s) - thresh_s));
-t_win_s     = time_sim(mask_win_s);
-t_sim_10pct_on = t_win_s(ix);
-
-sim_timeoffset_on = t_sim_10pct_on - t_emp_10pct_on
+% % ltspice_csv = fullfile(sim_path, 'LTspiceExport_35-5-5_48VDC_36uH.csv');
+% ltspice_csv = fullfile(sim_path, sim_file);
+% sim_raw = readtable(ltspice_csv);
+% 
+% time_sim   = sim_raw{:,1} - sim_timeoffset;   % offset: shift LTspice timestamps by -10 us
+% VDS2_sim   = sim_raw{:,2};
+% VDS3_sim   = sim_raw{:,3};
+% PWLdriver_sim = sim_raw{:,4};
+% VGS1_sim   = sim_raw{:,5};
+% VGS2_sim   = sim_raw{:,6};
+% VGS3_sim   = sim_raw{:,7};
+% VDS1_sim   = sim_raw{:,8};
+% I_total_sim = sim_raw{:,9};
+% ID1_sim   = sim_raw{:,10};
+% ID2_sim   = sim_raw{:,11};
+% ID3_sim   = sim_raw{:,12};
+% I_load_sim = sim_raw{:,13};
+% IG1_sim   = sim_raw{:,14};
+% IG2_sim   = sim_raw{:,15};
+% IG3_sim   = sim_raw{:,16};
+% 
+% 
+% %% Section 4b: Simulation Event-Specific Alignment
+% 
+% avg_ns = 20e-9;   % averaging window width
+% 
+% VGS_emp_mean = (VGS1 + VGS2 + VGS3) / 3;
+% VGS_sim_mean = (VGS1_sim + VGS2_sim + VGS3_sim) / 3;
+% 
+% % Switch-Off: gate falls, event starts at T1
+% t_off = T1 * 1e-6;
+% 
+% mask_hi_e   = time >= t_off               & time     <= t_off + avg_ns;
+% mask_lo_e   = time >= t_off + 2e-6 - avg_ns & time   <= t_off + 2e-6;
+% V_hi_e      = mean(VGS_emp_mean(mask_hi_e));
+% V_lo_e      = mean(VGS_emp_mean(mask_lo_e));
+% thresh_e    = V_hi_e - 0.1 * (V_hi_e - V_lo_e);
+% mask_win_e  = time >= t_off & time <= t_off + 2e-6;
+% [~, ix]     = min(abs(VGS_emp_mean(mask_win_e) - thresh_e));
+% t_win       = time(mask_win_e);
+% t_emp_10pct_off = t_win(ix);
+% 
+% mask_hi_s   = time_sim >= t_off               & time_sim <= t_off + avg_ns;
+% mask_lo_s   = time_sim >= t_off + 2e-6 - avg_ns & time_sim <= t_off + 2e-6;
+% V_hi_s      = mean(VGS_sim_mean(mask_hi_s));
+% V_lo_s      = mean(VGS_sim_mean(mask_lo_s));
+% thresh_s    = V_hi_s - 0.1 * (V_hi_s - V_lo_s);
+% mask_win_s  = time_sim >= t_off & time_sim <= t_off + 2e-6;
+% [~, ix]     = min(abs(VGS_sim_mean(mask_win_s) - thresh_s));
+% t_win_s     = time_sim(mask_win_s);
+% t_sim_10pct_off = t_win_s(ix);
+% 
+% sim_timeoffset_off = t_sim_10pct_off - t_emp_10pct_off
+% 
+% % Switch-On: gate rises, event starts at T1+T2
+% t_on = (T1 + T2) * 1e-6;
+% 
+% mask_lo_e   = time >= t_on               & time     <= t_on + avg_ns;
+% mask_hi_e   = time >= t_on + 2e-6 - avg_ns & time   <= t_on + 2e-6;
+% V_lo_e      = mean(VGS_emp_mean(mask_lo_e));
+% V_hi_e      = mean(VGS_emp_mean(mask_hi_e));
+% thresh_e    = V_lo_e + 0.1 * (V_hi_e - V_lo_e);
+% mask_win_e  = time >= t_on & time <= t_on + 2e-6;
+% [~, ix]     = min(abs(VGS_emp_mean(mask_win_e) - thresh_e));
+% t_win       = time(mask_win_e);
+% t_emp_10pct_on = t_win(ix);
+% 
+% mask_lo_s   = time_sim >= t_on               & time_sim <= t_on + avg_ns;
+% mask_hi_s   = time_sim >= t_on + 2e-6 - avg_ns & time_sim <= t_on + 2e-6;
+% V_lo_s      = mean(VGS_sim_mean(mask_lo_s));
+% V_hi_s      = mean(VGS_sim_mean(mask_hi_s));
+% thresh_s    = V_lo_s + 0.1 * (V_hi_s - V_lo_s);
+% mask_win_s  = time_sim >= t_on & time_sim <= t_on + 2e-6;
+% [~, ix]     = min(abs(VGS_sim_mean(mask_win_s) - thresh_s));
+% t_win_s     = time_sim(mask_win_s);
+% t_sim_10pct_on = t_win_s(ix);
+% 
+% sim_timeoffset_on = t_sim_10pct_on - t_emp_10pct_on
 
 
 %% Section 5: Gate Current Plots
@@ -298,6 +298,128 @@ if plt_drain_current_events
     plot_event(time, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, ...
                time_sim - sim_timeoffset_on, ID1_sim, ID2_sim, ID3_sim, VGS1_sim, VGS2_sim, VGS3_sim, ...
                T1+T2,  'Switch-On',  colors, timewindow);
+end
+
+%% Section 9: Per MOSFET Switching Metric Measurement
+% Applies the identical methodology used in DPT_SwitchingMetrics (%% Process
+% Each T1) to each individual MOSFET at the fixed T1 = 35 µs defined above.
+%
+% Assumptions:
+%   - VDS is identical across all three MOSFETs  →  VDS1 used throughout
+%   - Per-MOSFET gate voltage references: VGS1, VGS2, VGS3
+%   - Per-MOSFET drain currents:          I_D1, I_D2, I_D3
+%   - Search windows: 1000 ns after each switching event (same as DPT_SwitchingMetrics)
+
+VGS_ss_m9 = 15;   % nominal gate drive voltage (V) — local to this section
+
+% Search windows
+w_off1 = T1        * 1e-6;   w_off2 = (T1 + 1)      * 1e-6;
+w_on1  = (T1 + T2) * 1e-6;   w_on2  = (T1 + T2 + 1) * 1e-6;
+
+% VDS steady-state references — shared (VDS1 used for all MOSFETs)
+VDS_off_ss_m9 = sample_at(time, VDS1, w_off2);   % VDS at T1 + 1 µs
+VDS_on_ss_m9  = sample_at(time, VDS1, w_on1);    % VDS at T1 + T2
+
+% Shared VDS threshold crossings — identical for all three MOSFETs
+t_VDS_10up = find_crossing(time, VDS1, 0.10 * VDS_off_ss_m9, +1, w_off1, w_off2);
+t_VDS_90up = find_crossing(time, VDS1, 0.90 * VDS_off_ss_m9, +1, w_off1, w_off2);
+t_VDS_90dn = find_crossing(time, VDS1, 0.90 * VDS_on_ss_m9,  -1, w_on1,  w_on2);
+t_VDS_10dn = find_crossing(time, VDS1, 0.10 * VDS_on_ss_m9,  -1, w_on1,  w_on2);
+
+dv_dt_off_m9 = (0.90 - 0.10) * VDS_off_ss_m9 / ((t_VDS_90up - t_VDS_10up) * 1e9);
+dv_dt_on_m9  = (0.90 - 0.10) * VDS_on_ss_m9  / ((t_VDS_10dn - t_VDS_90dn) * 1e9);
+
+VGS_all = {VGS1, VGS2, VGS3};
+I_D_all = {I_D1, I_D2, I_D3};
+
+for k = 1:3
+    VGSk = VGS_all{k};
+    I_Dk = I_D_all{k};
+
+    % Per-MOSFET steady-state current references
+    I_ss_off = sample_at(time, I_Dk, w_off1);   % I_D at T1
+    I_ss_on  = sample_at(time, I_Dk, w_on2);    % I_D at T1 + T2 + 1 µs
+
+    % Turn-off: VGS and I_D crossings
+    t_VGS_90 = find_crossing(time, VGSk, 0.90 * VGS_ss_m9, -1, w_off1, w_off2);
+    t_I_90dn = find_crossing(time, I_Dk, 0.90 * I_ss_off,  -1, w_off1, w_off2);
+    t_I_10dn = find_crossing(time, I_Dk, 0.10 * I_ss_off,  -1, w_off1, w_off2);
+
+    t_d_off   = (t_VDS_10up - t_VGS_90)            * 1e9;   % ns
+    t_f       = (t_VDS_90up - t_VDS_10up)           * 1e9;   % ns
+    di_dt_off = (0.10 - 0.90) * I_ss_off / ((t_I_10dn - t_I_90dn) * 1e9);   % A/ns
+    E_off     = energy_integral(time, VDS1, I_Dk, t_VDS_10up, t_I_10dn) * 1e6; % µJ
+
+    % Turn-on: VGS and I_D crossings
+    t_VGS_10 = find_crossing(time, VGSk, 0.10 * VGS_ss_m9, +1, w_on1, w_on2);
+    t_I_10up = find_crossing(time, I_Dk, 0.10 * I_ss_on,   +1, w_on1, w_on2);
+    t_I_90up = find_crossing(time, I_Dk, 0.90 * I_ss_on,   +1, w_on1, w_on2);
+
+    t_d_on   = (t_VDS_90dn - t_VGS_10)           * 1e9;   % ns
+    t_r      = (t_VDS_10dn - t_VDS_90dn)          * 1e9;   % ns
+    di_dt_on = (0.90 - 0.10) * I_ss_on / ((t_I_90up - t_I_10up) * 1e9);    % A/ns
+    E_on     = energy_integral(time, VDS1, I_Dk, t_I_10up, t_VDS_10dn) * 1e6; % µJ
+
+    m9(k).MOSFET    = k;
+    m9(k).I_ss_off  = I_ss_off;
+    m9(k).I_ss_on   = I_ss_on;
+    m9(k).t_VGS_90  = t_VGS_90;
+    m9(k).t_VGS_10  = t_VGS_10;
+    m9(k).t_I_90dn  = t_I_90dn;
+    m9(k).t_I_10dn  = t_I_10dn;
+    m9(k).t_I_10up  = t_I_10up;
+    m9(k).t_I_90up  = t_I_90up;
+    m9(k).t_d_off   = t_d_off;
+    m9(k).t_f       = t_f;
+    m9(k).E_off     = E_off;
+    m9(k).di_dt_off = di_dt_off;
+    m9(k).dv_dt_off = dv_dt_off_m9;   % shared — same for all MOSFETs
+    m9(k).t_d_on    = t_d_on;
+    m9(k).t_r       = t_r;
+    m9(k).E_on      = E_on;
+    m9(k).di_dt_on  = di_dt_on;
+    m9(k).dv_dt_on  = dv_dt_on_m9;    % shared — same for all MOSFETs
+end
+
+T9 = table([m9.MOSFET]', [m9.I_ss_off]', [m9.I_ss_on]', ...
+    [m9.t_d_off]', [m9.t_f]',  [m9.E_off]',  abs([m9.di_dt_off]'), [m9.dv_dt_off]', ...
+    [m9.t_d_on]',  [m9.t_r]',  [m9.E_on]',   [m9.di_dt_on]',       [m9.dv_dt_on]', ...
+    'VariableNames', {'MOSFET', 'I_ss_off_A', 'I_ss_on_A', ...
+        't_d_off_ns', 't_f_ns',  'E_off_uJ',  'di_dt_off_Ans', 'dv_dt_off_Vns', ...
+        't_d_on_ns',  't_r_ns',  'E_on_uJ',   'di_dt_on_Ans',  'dv_dt_on_Vns'});
+
+fprintf('\n=== Per-MOSFET Switching Metrics  (T1=%d µs, T2=%d µs, 48 VDC) ===\n', T1, T2);
+fprintf('    VDS_off_ss = %.1f V    VDS_on_ss = %.1f V\n', VDS_off_ss_m9, VDS_on_ss_m9);
+disp(T9);
+
+% --- Diagnostic plot: one 3×2 figure per MOSFET ---
+for k = 1:3
+    pts9.VDS_off_ss = VDS_off_ss_m9;
+    pts9.VDS_on_ss  = VDS_on_ss_m9;
+    pts9.t_VDS_10up = t_VDS_10up;
+    pts9.t_VDS_90up = t_VDS_90up;
+    pts9.t_VDS_90dn = t_VDS_90dn;
+    pts9.t_VDS_10dn = t_VDS_10dn;
+    pts9.I_ss_off   = m9(k).I_ss_off;
+    pts9.I_ss_on    = m9(k).I_ss_on;
+    pts9.t_VGS_90   = m9(k).t_VGS_90;
+    pts9.t_VGS_10   = m9(k).t_VGS_10;
+    pts9.t_I_90dn   = m9(k).t_I_90dn;
+    pts9.t_I_10dn   = m9(k).t_I_10dn;
+    pts9.t_I_10up   = m9(k).t_I_10up;
+    pts9.t_I_90up   = m9(k).t_I_90up;
+    pts9.t_d_off    = m9(k).t_d_off;
+    pts9.t_f        = m9(k).t_f;
+    pts9.dv_dt_off  = m9(k).dv_dt_off;
+    pts9.di_dt_off  = m9(k).di_dt_off;
+    pts9.t_d_on     = m9(k).t_d_on;
+    pts9.t_r        = m9(k).t_r;
+    pts9.dv_dt_on   = m9(k).dv_dt_on;
+    pts9.di_dt_on   = m9(k).di_dt_on;
+    pts9.E_off      = m9(k).E_off;
+    pts9.E_on       = m9(k).E_on;
+    plot_diagnostics(time, VGS_all{k}, I_D_all{k}, VDS1, T1, T2, VGS_ss_m9, pts9, ...
+        sprintf('MOSFET %d  —  T_1 = %d µs, 48 VDC', k, T1));
 end
 
 %% -------------------------------------------------------------------------
