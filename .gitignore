@@ -18,3 +18,14 @@ sfprj/
 
 # Reports and logs
 *.log
+LTspice parasitics/InverterUnbalancedDPT/InverterUnbalancedDPT_DT_35-5-5_48VDC.net
+LTspice parasitics/InverterUnbalancedDPT/InverterUnbalancedDPT_DT_35-5-5_48VDC.raw
+LTspice parasitics/InverterUnbalancedDPT/InverterUnbalancedDPT.raw
+Matlab/DPT_Analysis_charliedev.m
+.vscode/settings.json
+.gitignore
+*.raw
+LTspice parasitics/Inverter_BASE.raw
+LTspice parasitics/InverterBalancedDPT.raw
+*_scratch.asc
+*_scratch.lib

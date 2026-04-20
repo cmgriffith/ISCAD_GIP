@@ -1,0 +1,40 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run MATLAB File",
+            "type": "shell",
+            "command": "matlab",
+            "args": [
+                "-batch",
+                "run('${file}')"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run MATLAB File (GUI)",
+            "type": "shell",
+            "command": "matlab",
+            "args": [
+                "-nodesktop",
+                "-nosplash",
+                "-r",
+                "run('${file}'); input('Press Enter to close...')"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ]
+}
