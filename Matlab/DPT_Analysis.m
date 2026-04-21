@@ -117,84 +117,95 @@ I_G3 = V_RG3 / R_G;
 
 %% Section 4: SIMULATION import LTspice simulation data
 
-% ltspice_csv = fullfile(sim_path, 'LTspiceExport_35-5-5_48VDC_36uH.csv');
-ltspice_csv = fullfile(sim_path, sim_file);
-sim_raw = readtable(ltspice_csv);
+if plt_include_simulation
+    % ltspice_csv = fullfile(sim_path, 'LTspiceExport_35-5-5_48VDC_36uH.csv');
+    ltspice_csv = fullfile(sim_path, sim_file);
+    sim_raw = readtable(ltspice_csv);
 
-time_sim   = sim_raw{:,1} - sim_timeoffset;   % offset: shift LTspice timestamps by -10 us
-VDS2_sim   = sim_raw{:,2};
-VDS3_sim   = sim_raw{:,3};
-PWLdriver_sim = sim_raw{:,4};
-VGS1_sim   = sim_raw{:,5};
-VGS2_sim   = sim_raw{:,6};
-VGS3_sim   = sim_raw{:,7};
-VDS1_sim   = sim_raw{:,8};
-I_total_sim = sim_raw{:,9};
-ID1_sim   = sim_raw{:,10};
-ID2_sim   = sim_raw{:,11};
-ID3_sim   = sim_raw{:,12};
-I_load_sim = sim_raw{:,13};
-IG1_sim   = sim_raw{:,14};
-IG2_sim   = sim_raw{:,15};
-IG3_sim   = sim_raw{:,16};
+    time_sim   = sim_raw{:,1} - sim_timeoffset;   % offset: shift LTspice timestamps by -10 us
+    VDS2_sim   = sim_raw{:,2};
+    VDS3_sim   = sim_raw{:,3};
+    PWLdriver_sim = sim_raw{:,4};
+    VGS1_sim   = sim_raw{:,5};
+    VGS2_sim   = sim_raw{:,6};
+    VGS3_sim   = sim_raw{:,7};
+    VDS1_sim   = sim_raw{:,8};
+    I_total_sim = sim_raw{:,9};
+    ID1_sim   = sim_raw{:,10};
+    ID2_sim   = sim_raw{:,11};
+    ID3_sim   = sim_raw{:,12};
+    I_load_sim = sim_raw{:,13};
+    IG1_sim   = sim_raw{:,14};
+    IG2_sim   = sim_raw{:,15};
+    IG3_sim   = sim_raw{:,16};
+else
+    time_sim = []; VGS1_sim = []; VGS2_sim = []; VGS3_sim = [];
+    ID1_sim  = []; ID2_sim  = []; ID3_sim  = [];
+    IG1_sim  = []; IG2_sim  = []; IG3_sim  = [];
+end
 
 
 %% Section 4b: Simulation Event-Specific Alignment
 
-avg_ns = 20e-9;   % averaging window width
+if plt_include_simulation
+    avg_ns = 20e-9;   % averaging window width
 
-VGS_emp_mean = (VGS1 + VGS2 + VGS3) / 3;
-VGS_sim_mean = (VGS1_sim + VGS2_sim + VGS3_sim) / 3;
+    VGS_emp_mean = (VGS1 + VGS2 + VGS3) / 3;
+    VGS_sim_mean = (VGS1_sim + VGS2_sim + VGS3_sim) / 3;
 
-% Switch-Off: gate falls, event starts at T1
-t_off = T1 * 1e-6;
+    % Switch-Off: gate falls, event starts at T1
+    t_off = T1 * 1e-6;
 
-mask_hi_e   = time >= t_off               & time     <= t_off + avg_ns;
-mask_lo_e   = time >= t_off + 2e-6 - avg_ns & time   <= t_off + 2e-6;
-V_hi_e      = mean(VGS_emp_mean(mask_hi_e));
-V_lo_e      = mean(VGS_emp_mean(mask_lo_e));
-thresh_e    = V_hi_e - 0.01 * (V_hi_e - V_lo_e);
-mask_win_e  = time >= t_off & time <= t_off + 2e-6;
-[~, ix]     = min(abs(VGS_emp_mean(mask_win_e) - thresh_e));
-t_win       = time(mask_win_e);
-t_emp_1pct_off = t_win(ix);
+    mask_hi_e   = time >= t_off               & time     <= t_off + avg_ns;
+    mask_lo_e   = time >= t_off + 2e-6 - avg_ns & time   <= t_off + 2e-6;
+    V_hi_e      = mean(VGS_emp_mean(mask_hi_e));
+    V_lo_e      = mean(VGS_emp_mean(mask_lo_e));
+    thresh_e    = V_hi_e - 0.01 * (V_hi_e - V_lo_e);
+    mask_win_e  = time >= t_off & time <= t_off + 2e-6;
+    [~, ix]     = min(abs(VGS_emp_mean(mask_win_e) - thresh_e));
+    t_win       = time(mask_win_e);
+    t_emp_1pct_off = t_win(ix);
 
-mask_hi_s   = time_sim >= t_off               & time_sim <= t_off + avg_ns;
-mask_lo_s   = time_sim >= t_off + 2e-6 - avg_ns & time_sim <= t_off + 2e-6;
-V_hi_s      = mean(VGS_sim_mean(mask_hi_s));
-V_lo_s      = mean(VGS_sim_mean(mask_lo_s));
-thresh_s    = V_hi_s - 0.01 * (V_hi_s - V_lo_s);
-mask_win_s  = time_sim >= t_off & time_sim <= t_off + 2e-6;
-[~, ix]     = min(abs(VGS_sim_mean(mask_win_s) - thresh_s));
-t_win_s     = time_sim(mask_win_s);
-t_sim_1pct_off = t_win_s(ix);
+    mask_hi_s   = time_sim >= t_off               & time_sim <= t_off + avg_ns;
+    mask_lo_s   = time_sim >= t_off + 2e-6 - avg_ns & time_sim <= t_off + 2e-6;
+    V_hi_s      = mean(VGS_sim_mean(mask_hi_s));
+    V_lo_s      = mean(VGS_sim_mean(mask_lo_s));
+    thresh_s    = V_hi_s - 0.01 * (V_hi_s - V_lo_s);
+    mask_win_s  = time_sim >= t_off & time_sim <= t_off + 2e-6;
+    [~, ix]     = min(abs(VGS_sim_mean(mask_win_s) - thresh_s));
+    t_win_s     = time_sim(mask_win_s);
+    t_sim_1pct_off = t_win_s(ix);
 
-sim_timeoffset_off = t_sim_1pct_off - t_emp_1pct_off
+    sim_timeoffset_off = t_sim_1pct_off - t_emp_1pct_off
 
-% Switch-On: gate rises, event starts at T1+T2
-t_on = (T1 + T2) * 1e-6;
+    % Switch-On: gate rises, event starts at T1+T2
+    t_on = (T1 + T2) * 1e-6;
 
-mask_lo_e   = time >= t_on               & time     <= t_on + avg_ns;
-mask_hi_e   = time >= t_on + 2e-6 - avg_ns & time   <= t_on + 2e-6;
-V_lo_e      = mean(VGS_emp_mean(mask_lo_e));
-V_hi_e      = mean(VGS_emp_mean(mask_hi_e));
-thresh_e    = V_lo_e + 0.01 * (V_hi_e - V_lo_e);
-mask_win_e  = time >= t_on & time <= t_on + 2e-6;
-[~, ix]     = min(abs(VGS_emp_mean(mask_win_e) - thresh_e));
-t_win       = time(mask_win_e);
-t_emp_1pct_on = t_win(ix);
+    mask_lo_e   = time >= t_on               & time     <= t_on + avg_ns;
+    mask_hi_e   = time >= t_on + 2e-6 - avg_ns & time   <= t_on + 2e-6;
+    V_lo_e      = mean(VGS_emp_mean(mask_lo_e));
+    V_hi_e      = mean(VGS_emp_mean(mask_hi_e));
+    thresh_e    = V_lo_e + 0.01 * (V_hi_e - V_lo_e);
+    mask_win_e  = time >= t_on & time <= t_on + 2e-6;
+    [~, ix]     = min(abs(VGS_emp_mean(mask_win_e) - thresh_e));
+    t_win       = time(mask_win_e);
+    t_emp_1pct_on = t_win(ix);
 
-mask_lo_s   = time_sim >= t_on               & time_sim <= t_on + avg_ns;
-mask_hi_s   = time_sim >= t_on + 2e-6 - avg_ns & time_sim <= t_on + 2e-6;
-V_lo_s      = mean(VGS_sim_mean(mask_lo_s));
-V_hi_s      = mean(VGS_sim_mean(mask_hi_s));
-thresh_s    = V_lo_s + 0.01 * (V_hi_s - V_lo_s);
-mask_win_s  = time_sim >= t_on & time_sim <= t_on + 2e-6;
-[~, ix]     = min(abs(VGS_sim_mean(mask_win_s) - thresh_s));
-t_win_s     = time_sim(mask_win_s);
-t_sim_1pct_on = t_win_s(ix);
+    mask_lo_s   = time_sim >= t_on               & time_sim <= t_on + avg_ns;
+    mask_hi_s   = time_sim >= t_on + 2e-6 - avg_ns & time_sim <= t_on + 2e-6;
+    V_lo_s      = mean(VGS_sim_mean(mask_lo_s));
+    V_hi_s      = mean(VGS_sim_mean(mask_hi_s));
+    thresh_s    = V_lo_s + 0.01 * (V_hi_s - V_lo_s);
+    mask_win_s  = time_sim >= t_on & time_sim <= t_on + 2e-6;
+    [~, ix]     = min(abs(VGS_sim_mean(mask_win_s) - thresh_s));
+    t_win_s     = time_sim(mask_win_s);
+    t_sim_1pct_on = t_win_s(ix);
 
-sim_timeoffset_on = t_sim_1pct_on - t_emp_1pct_on
+    sim_timeoffset_on = t_sim_1pct_on - t_emp_1pct_on
+else
+    sim_timeoffset_off = 0;
+    sim_timeoffset_on  = 0;
+end
 
 
 %% Section 5: Gate Current Plots
