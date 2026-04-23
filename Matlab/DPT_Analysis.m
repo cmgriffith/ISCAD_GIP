@@ -7,7 +7,7 @@
 % DPT pulsetrain periods are identical between empirical and simulation, but absolute timestamps are not. 
 % EMPIRICAL timestamps stay fixed, since they correlate to the physically meaningful logic trigger on a 3.6V T1 rising edge
 % SIMULATION timestamps are different, and simulation doesn't model logic signal or the gate driver chip,
-% hence simulation data will be aligned with 1% changes in the average device gate voltage, such that gate voltage waveforms are consistently timed
+% hence simulation data will be aligned with 10% changes in the average device gate voltage, such that gate voltage waveforms are consistently timed
 
 close all
 
@@ -39,16 +39,18 @@ colors = {[0 0.447 0.741], [0.850 0.325 0.098], [0.466 0.674 0.188]};
 %% Plot Control Flags
 % Set to true/false to enable/disable each figure group
 
-plt_include_simulation   = 0;   % overlay LTspice simulation series on all plots
+plt_include_simulation   = 1;   % overlay LTspice simulation series on all plots
 
-plt_gate_current_full    = 1;   % "Full Sample Window - Gate Currents"
+plt_gate_current_full    = 0;   % "Full Sample Window - Gate Currents"
 plt_gate_current_events  = 1;   % "Gate Current - Switch-Off/On"
 plt_vgs_compare          = 1;   % "VGS Comparison - Switch-Off/On"
 plt_raw_rogowski_events  = 0;   % "Raw Rogowski & Gate Currents - Switch-Off/On"
-plt_corr_rogowski_events = 1;   % "Corrected Rogowski - Switch-Off/On"
-plt_raw_rogowski_full    = 1;   % "Full Sample Window - Raw Rogowski Measurements"
+plt_corr_rogowski_events = 0;   % "Corrected Rogowski - Switch-Off/On"
+plt_raw_rogowski_full    = 0;   % "Full Sample Window - Raw Rogowski Measurements"
 plt_drain_current_full   = 1;   % "Full Sample Window - Drain Currents"
 plt_drain_current_events = 1;   % "Switch-Off/On" drain current + VGS
+
+plt_section9             = 0;   % compute switching metrics and produce diagnostic plots (Section 9)
 
 
 %% Section 1: Paths and Folder Definitions
@@ -72,7 +74,9 @@ load_asym = @(f, ch) load_csv(fullfile(asym_base,  asym_folders{f}, sprintf('CH%
 
 sim_path = fullfile(getenv('USERPROFILE'), 'OneDrive - University of Bristol', 'grp-GRP Group 1002 - Documents', 'DPT Results', 'LTspice exports');
 % sim_file = 'InverterUnbalancedDPT_35-5-5DPT_48VDC_POST_ANALYTICAL_MODEL_allsignals_prePWLtune.csv'
-sim_file = 'InverterUnbalancedDPT_35-5-5DPT_48VDC_POST_ANALYTICAL_MODEL_allsignals.csv'
+% sim_file = 'InverterUnbalancedDPT_35-5-5DPT_48VDC_POST_ANALYTICAL_MODEL_allsignals2.csv'
+sim_file = 'InverterUnbalancedDPT_35-5-5DPT_48VDC_FORCEDVGS_MODEL.csv'
+
 
 %% Section 2: Import Rogowski & VGS/VDS Channels
 
@@ -160,23 +164,23 @@ if plt_include_simulation
     mask_lo_e   = time >= t_off + 2e-6 - avg_ns & time   <= t_off + 2e-6;
     V_hi_e      = mean(VGS_emp_mean(mask_hi_e));
     V_lo_e      = mean(VGS_emp_mean(mask_lo_e));
-    thresh_e    = V_hi_e - 0.01 * (V_hi_e - V_lo_e);
+    thresh_e    = V_hi_e - 0.1 * (V_hi_e - V_lo_e);
     mask_win_e  = time >= t_off & time <= t_off + 2e-6;
     [~, ix]     = min(abs(VGS_emp_mean(mask_win_e) - thresh_e));
     t_win       = time(mask_win_e);
-    t_emp_1pct_off = t_win(ix);
+    t_emp_10pct_off = t_win(ix);
 
     mask_hi_s   = time_sim >= t_off               & time_sim <= t_off + avg_ns;
     mask_lo_s   = time_sim >= t_off + 2e-6 - avg_ns & time_sim <= t_off + 2e-6;
     V_hi_s      = mean(VGS_sim_mean(mask_hi_s));
     V_lo_s      = mean(VGS_sim_mean(mask_lo_s));
-    thresh_s    = V_hi_s - 0.01 * (V_hi_s - V_lo_s);
+    thresh_s    = V_hi_s - 0.1 * (V_hi_s - V_lo_s);
     mask_win_s  = time_sim >= t_off & time_sim <= t_off + 2e-6;
     [~, ix]     = min(abs(VGS_sim_mean(mask_win_s) - thresh_s));
     t_win_s     = time_sim(mask_win_s);
-    t_sim_1pct_off = t_win_s(ix);
+    t_sim_10pct_off = t_win_s(ix);
 
-    sim_timeoffset_off = t_sim_1pct_off - t_emp_1pct_off
+    sim_timeoffset_off = t_sim_10pct_off - t_emp_10pct_off
 
     % Switch-On: gate rises, event starts at T1+T2
     t_on = (T1 + T2) * 1e-6;
@@ -185,23 +189,23 @@ if plt_include_simulation
     mask_hi_e   = time >= t_on + 2e-6 - avg_ns & time   <= t_on + 2e-6;
     V_lo_e      = mean(VGS_emp_mean(mask_lo_e));
     V_hi_e      = mean(VGS_emp_mean(mask_hi_e));
-    thresh_e    = V_lo_e + 0.01 * (V_hi_e - V_lo_e);
+    thresh_e    = V_lo_e + 0.1 * (V_hi_e - V_lo_e);
     mask_win_e  = time >= t_on & time <= t_on + 2e-6;
     [~, ix]     = min(abs(VGS_emp_mean(mask_win_e) - thresh_e));
     t_win       = time(mask_win_e);
-    t_emp_1pct_on = t_win(ix);
+    t_emp_10pct_on = t_win(ix);
 
     mask_lo_s   = time_sim >= t_on               & time_sim <= t_on + avg_ns;
     mask_hi_s   = time_sim >= t_on + 2e-6 - avg_ns & time_sim <= t_on + 2e-6;
     V_lo_s      = mean(VGS_sim_mean(mask_lo_s));
     V_hi_s      = mean(VGS_sim_mean(mask_hi_s));
-    thresh_s    = V_lo_s + 0.01 * (V_hi_s - V_lo_s);
+    thresh_s    = V_lo_s + 0.1 * (V_hi_s - V_lo_s);
     mask_win_s  = time_sim >= t_on & time_sim <= t_on + 2e-6;
     [~, ix]     = min(abs(VGS_sim_mean(mask_win_s) - thresh_s));
     t_win_s     = time_sim(mask_win_s);
-    t_sim_1pct_on = t_win_s(ix);
+    t_sim_10pct_on = t_win_s(ix);
 
-    sim_timeoffset_on = t_sim_1pct_on - t_emp_1pct_on
+    sim_timeoffset_on = t_sim_10pct_on - t_emp_10pct_on
 else
     sim_timeoffset_off = 0;
     sim_timeoffset_on  = 0;
@@ -316,6 +320,8 @@ if plt_drain_current_events
 end
 
 %% Section 9: Per MOSFET Switching Metric Measurement
+
+if plt_section9
 % Applies the identical methodology used in DPT_SwitchingMetrics (%% Process
 % Each T1) to each individual MOSFET at the fixed T1 = 35 µs defined above.
 %
@@ -436,6 +442,8 @@ for k = 1:3
     plot_diagnostics(time, VGS_all{k}, I_D_all{k}, VDS1, T1, T2, VGS_ss_m9, pts9, ...
         sprintf('MOSFET %d  —  T_1 = %d µs, 48 VDC', k, T1));
 end
+
+end  % if plt_section9
 
 %% -------------------------------------------------------------------------
 %  Local Functions

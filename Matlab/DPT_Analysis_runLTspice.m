@@ -21,27 +21,31 @@ T3  = 5;    % second pulse duration (µs) - switch-on event occurs at T1+T2
 R_G = 5.1;  % gate resistance (Ohms)
 
 %% LTspice: define relevant model parameters
+% Load
+phase_inductance = 54e-6; % load inductance
 % Passive Component Values
-gate_resistor          = R_G;     % [2, R_G] Ω  — gate input resistor
+gate_resistor          = [2, 5.1];     % 5.1 Ω  — gate input resistor
 snubber_capacitor      = 99e-9;    % F  — strictly: decoupling not snubber
 snubber_resistor       = 2.7;      % Ω  — strictly: decoupling not snubber
-DC_link_capacitor      = 132e-6;   % F
+DC_link_capacitor      = 132e-6;   % F 132e-6
 % Parasitic Inductances
-gate_inductance        = 20e-9;    % [20e-9, 100e-9] H 20n  — gate input inductance
+gate_inductance        = 20e-9;    % H 20n  — gate input inductance
 power_loop_inductance  = 3.8e-9;   % H 3.8e-9
-common_mode_inductance = 1e-9;     % H 1n
-DC_link_inductance     = 5.65e-9;  % H 5.65n
-branch_inductance      = 1e-9;    % H 12n — bus bar inductance between parallel branches
+common_mode_inductance = 1e-9;     % H 1n analytical, 0.1-5n sweeps
+DC_link_inductance     = 27e-9;  % H 5.65n original, 17n is better
+% must add to 54
+branch_inductance_23   = 33e-9;    % H — bus bar inductance between parallel branches
+branch_inductance_12   = 25e-9;    % H — phase bar inductance between parallel branches
 % Parasitic Resistances
 rds_on = 1.1e-3; 
 DC_link_resistance     = 150e-6;   % Ω  — bus bar resistance
 C_DC_ESR               = 0.48e-3;  % Ω  — DC link capacitor ESR
-C_snb_ESR              = 1e-3;     % Ω  — snubber capacitor ESR
-branch_resistance      = 20e-6;    % Ω 20m  — bus bar resistance between parallel branches
-solder_t               = [0.05e-3, 0.2e-3, 1e-3];  % m solder thickness
+C_snb_ESR              = 1e-3 + 1.72e-3;     % Ω  — snubber capacitor ESR + power loop trace ribbon  1.72m
+branch_resistance      = 20e-6;    % Ω 20u  — bus bar resistance between parallel branches
+% solder_t             = 0.05e-3;  % m solder thickness
 % PWL voltage source for DPT gate pulses
-Trise = 80e-9;
-Tfall = 70e-9;
+Trise = 65e-9; % 95n from PWL tune?
+Tfall = 65e-9; % 85n from PWL tune?
 
 %% Program Variables
 sim_timeoffset = 10e-6; % LTspice allocates 10us before T1 begins
@@ -53,14 +57,15 @@ sim_markers = {'o', '+', '*', '.', 'x', 'square', 'diamond'}; % markers cycled p
 %% Plot Control Flags
 % Set to true/false to enable/disable each figure group
 plt_gate_current_full    = 1;   % "Full Sample Window - Gate Currents"
-plt_gate_current_events  = 1;   % "Gate Current - Switch-Off/On"
-plt_vgs_compare          = 1;   % "VGS Comparison - Switch-Off/On"
+plt_gate_current_events  = 0;   % "Gate Current - Switch-Off/On"
+plt_vgs_compare          = 0;   % "VGS Comparison - Switch-Off/On"
 plt_raw_rogowski_events  = 0;   % "Raw Rogowski & Gate Currents - Switch-Off/On"
 plt_corr_rogowski_events = 0;   % "Corrected Rogowski - Switch-Off/On"
 plt_raw_rogowski_full    = 0;   % "Full Sample Window - Raw Rogowski Measurements"
-plt_drain_current_full   = 1;   % "Full Sample Window - Drain Currents"
-plt_dc_link_current_full = 1;   % "Full Sample Window - Total DC Link Current (sum I_D1..I_D3)"
-plt_drain_current_events = 1;   % "Switch-Off/On" drain current + VGS
+plt_drain_current_full          = 1;   % "Full Sample Window - Drain Currents"
+plt_dc_link_current_full        = 1;   % "Full Sample Window - Total DC Link Current (sum I_D1..I_D3)"
+plt_drain_current_allbranch_events  = 1;   % "Switch-Off/On" all branches, all sweep runs
+plt_drain_current_perbranch_events  = 1;   % "Switch-Off/On MX" per-branch plots, all sweep runs
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% Section 1: Paths and Folder Definitions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -91,9 +96,18 @@ iscad_root  = fileparts(fileparts(mfilename('fullpath')));   % up from Matlab/ t
 %asc_file    = fullfile(iscad_root, 'LTspice parasitics', ... % system directory containing .asc LTspice model files
 %              'InverterUnbalancedDPT', ...
 %              'InverterUnbalancedDPT_35-5-5DPT_48VDC_POST_ANALYTICAL_MODEL.asc');
-asc_file    = fullfile(iscad_root, 'LTspice parasitics', ... % system directory containing .asc LTspice model files
+% asc_file    = fullfile(iscad_root, 'LTspice parasitics', ... % system directory containing .asc LTspice model files
+%              'InverterUnbalancedDPT', ...
+%              'InverterUnbalancedDPT_35-5-5DPT_48VDC_POST_EMPIRICAL_MODEL.asc');
+% asc_file    = fullfile(iscad_root, 'LTspice parasitics', ... % system directory containing .asc LTspice model files
+%              'InverterUnbalancedDPT', ...
+%              'InverterUnbalancedDPT_35-5-5DPT_48VDC_DEVICE_VARIATION_MODEL.asc');
+ asc_file    = fullfile(iscad_root, 'LTspice parasitics', ... % system directory containing .asc LTspice model files
               'InverterUnbalancedDPT', ...
-              'InverterUnbalancedDPT_35-5-5DPT_48VDC_POST_EMPIRICAL_MODEL.asc');
+              'InverterUnbalancedDPT_35-5-5DPT_48VDC_BRANCH_VARIATION_MODEL.asc');
+% asc_file    = fullfile(iscad_root, 'LTspice parasitics', ... % system directory containing .asc LTspice model files
+%              'InverterUnbalancedDPT', ...
+%              'InverterUnbalancedDPT_35-5-5DPT_48VDC_BRANCH_VARIATION_MODEL_highcurrent.asc');
 scratch_asc = strrep(asc_file,    '.asc', '_scratch.asc'); % working copy — MATLAB patches params here before running
 scratch_raw = strrep(scratch_asc, '.asc', '.raw');
 
@@ -150,7 +164,9 @@ I_G3 = V_RG3 / R_G;
 
 
 %% Section 4: Build parameter struct and expand sweep
-
+spice_params.T1                     = T1*1e-6;
+spice_params.T2                     = T2*1e-6;
+spice_params.T3                     = T3*1e-6;
 spice_params.gate_resistor          = gate_resistor;
 spice_params.snubber_capacitor      = snubber_capacitor;
 spice_params.snubber_resistor       = snubber_resistor;
@@ -159,7 +175,6 @@ spice_params.gate_inductance        = gate_inductance;
 spice_params.power_loop_inductance  = power_loop_inductance;
 spice_params.common_mode_inductance = common_mode_inductance;
 spice_params.DC_link_inductance     = DC_link_inductance;
-spice_params.branch_inductance      = branch_inductance;
 spice_params.DC_link_resistance     = DC_link_resistance;
 spice_params.C_DC_ESR               = C_DC_ESR;
 spice_params.C_snb_ESR              = C_snb_ESR;
@@ -167,7 +182,10 @@ spice_params.branch_resistance      = branch_resistance;
 spice_params.Trise                  = Trise;
 spice_params.Tfall                  = Tfall;
 spice_params.rds_on                 = rds_on;
-spice_params.solder_t               = solder_t;
+spice_params.phase_inductance       = phase_inductance;
+spice_params.branch_inductance_23  = branch_inductance_23;
+spice_params.branch_inductance_12  = branch_inductance_12;
+% spice_params.solder_t               = solder_t;
 
 param_list = expand_param_sweep(spice_params);
 n_runs     = numel(param_list);
@@ -175,6 +193,12 @@ fprintf('Sweep: %d simulation run(s)\n', n_runs);
 
 
 %% Section 4b: Run simulations and import results
+
+% Startup probe: launch LTspice with a nonexistent file so it exits immediately.
+% This isolates process cold-start cost (EXE load, DLL init, shutdown) from simulation time.
+t0_probe = tic;
+system(sprintf('"%s" -b "%s"', ltspice_exe, fullfile(tempdir, 'ltspice_probe_nonexistent.asc')));
+% fprintf('  LTspice cold-start overhead (process only): %.2f s\n', toc(t0_probe)); % DEBUG
 
 VGS_emp_mean = (VGS1 + VGS2 + VGS3) / 3;
 
@@ -190,10 +214,20 @@ for k = 1:n_runs
     fprintf('  Run %d/%d ...\n', k, n_runs);
 
     p = param_list{k};
-    write_ltspice_scratch(asc_file, scratch_asc, p);
-    system(sprintf('"%s" -b -ascii "%s"', ltspice_exe, scratch_asc));
-    sim = read_ltspice_raw(scratch_raw);
 
+    t0 = tic;
+    write_ltspice_scratch(asc_file, scratch_asc, p);
+    % fprintf('    write_ltspice_scratch : %.2f s\n', toc(t0)); % DEBUG
+
+    t0 = tic;
+    system(sprintf('"%s" -b "%s"', ltspice_exe, scratch_asc));
+    fprintf('    LTspice system() call : %.2f s\n', toc(t0));
+
+    t0 = tic;
+    sim = read_ltspice_raw(scratch_raw);
+    % fprintf('    read_ltspice_raw      : %.2f s\n', toc(t0)); % DEBUG
+
+    t0 = tic;
     time_sim = sim('time') - sim_timeoffset;
     VGS1_sim = sim('V(v_g_low1)') - sim('V(v_s_low1)');
     VGS2_sim = sim('V(v_g_low2)') - sim('V(v_s_low2)');
@@ -219,6 +253,10 @@ for k = 1:n_runs
     sweep_results(k).IG3_sim            = sim('I(R_g3)');
     sweep_results(k).sim_timeoffset_off = offset_off;
     sweep_results(k).sim_timeoffset_on  = offset_on;
+    % fprintf('    post-processing       : %.2f s\n', toc(t0)); % DEBUG
+    total_off = (sim_timeoffset + offset_off) * 1e6;
+    total_on  = (sim_timeoffset + offset_on)  * 1e6;
+    fprintf('    alignment: off=%.3f µs  on=%.3f µs  diff=%.3f µs\n', total_off, total_on, total_on - total_off);
 end
 
 disp('All simulations complete.')
@@ -332,7 +370,7 @@ if plt_drain_current_full
         r       = sweep_results(k);
         lmarker = sim_markers{mod(k-1, numel(sim_markers)) + 1};
         lbl     = make_sweep_label(sweep_results, k);
-        mi      = round(linspace(1, numel(r.time_sim), min(20, numel(r.time_sim))));
+        mi      = round(linspace(1, numel(r.time_sim), min(200, numel(r.time_sim))));
         plot(r.time_sim * 1e6, r.ID1_sim, '--', 'Color', colors{1}, 'Marker', lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M1 ' lbl]);
         plot(r.time_sim * 1e6, r.ID2_sim, '--', 'Color', colors{2}, 'Marker', lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M2 ' lbl]);
         plot(r.time_sim * 1e6, r.ID3_sim, '--', 'Color', colors{3}, 'Marker', lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M3 ' lbl]);
@@ -351,7 +389,7 @@ if plt_dc_link_current_full
         r       = sweep_results(k);
         lmarker = sim_markers{mod(k-1, numel(sim_markers)) + 1};
         lbl     = make_sweep_label(sweep_results, k);
-        mi      = round(linspace(1, numel(r.time_sim), min(20, numel(r.time_sim))));
+        mi      = round(linspace(1, numel(r.time_sim), min(400, numel(r.time_sim))));
         plot(r.time_sim * 1e6, r.ID1_sim + r.ID2_sim + r.ID3_sim, '--', 'Color', colors{2}, 'Marker', lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['Total ' lbl]);
     end
     hold off;
@@ -360,22 +398,52 @@ if plt_dc_link_current_full
     legend('Location', 'best'); grid on;
 end
 
-if plt_drain_current_events
-    ax_drain_off = []; ax_drain_on = [];
+if plt_drain_current_allbranch_events
+    ax_ab_off = [];
+    ax_ab_on  = [];
     for k = 1:n_runs
         r       = sweep_results(k);
         lmarker = sim_markers{mod(k-1, numel(sim_markers)) + 1};
         lbl     = make_sweep_label(sweep_results, k);
-        ax_drain_off = plot_event(ax_drain_off, ...
-            time, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, ...
+        ax_ab_off = plot_event(ax_ab_off, ...
+            time, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, VDS1, VDS2, VDS3, ...
             r.time_sim - r.sim_timeoffset_off, ...
-            r.ID1_sim, r.ID2_sim, r.ID3_sim, r.VGS1_sim, r.VGS2_sim, r.VGS3_sim, ...
+            r.ID1_sim, r.ID2_sim, r.ID3_sim, r.VGS1_sim, r.VGS2_sim, r.VGS3_sim, r.VDS1_sim, r.VDS2_sim, r.VDS3_sim, ...
             T1,    'Switch-Off', colors, timewindow, lmarker, lbl);
-        ax_drain_on  = plot_event(ax_drain_on, ...
-            time, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, ...
+        ax_ab_on = plot_event(ax_ab_on, ...
+            time, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, VDS1, VDS2, VDS3, ...
             r.time_sim - r.sim_timeoffset_on, ...
-            r.ID1_sim, r.ID2_sim, r.ID3_sim, r.VGS1_sim, r.VGS2_sim, r.VGS3_sim, ...
+            r.ID1_sim, r.ID2_sim, r.ID3_sim, r.VGS1_sim, r.VGS2_sim, r.VGS3_sim, r.VDS1_sim, r.VDS2_sim, r.VDS3_sim, ...
             T1+T2, 'Switch-On',  colors, timewindow, lmarker, lbl);
+    end
+end
+
+if plt_drain_current_perbranch_events
+    branches = {'M1', 'M2', 'M3'};
+    I_D_emp  = {I_D1, I_D2, I_D3};
+    VGS_emp  = {VGS1, VGS2, VGS3};
+    VDS_emp  = {VDS1, VDS2, VDS3};
+    ax_pb_off = {[], [], []};
+    ax_pb_on  = {[], [], []};
+    for k = 1:n_runs
+        r       = sweep_results(k);
+        lmarker = sim_markers{mod(k-1, numel(sim_markers)) + 1};
+        lbl     = make_sweep_label(sweep_results, k);
+        ID_sim_b  = {r.ID1_sim,  r.ID2_sim,  r.ID3_sim};
+        VGS_sim_b = {r.VGS1_sim, r.VGS2_sim, r.VGS3_sim};
+        VDS_sim_b = {r.VDS1_sim, r.VDS2_sim, r.VDS3_sim};
+        for b = 1:3
+            ax_pb_off{b} = plot_event_branch(ax_pb_off{b}, ...
+                time, I_D_emp{b}, VGS_emp{b}, VDS_emp{b}, colors{b}, ...
+                r.time_sim - r.sim_timeoffset_off, ...
+                ID_sim_b{b}, VGS_sim_b{b}, VDS_sim_b{b}, ...
+                T1,    ['Switch-Off ' branches{b}], timewindow, lmarker, lbl);
+            ax_pb_on{b}  = plot_event_branch(ax_pb_on{b}, ...
+                time, I_D_emp{b}, VGS_emp{b}, VDS_emp{b}, colors{b}, ...
+                r.time_sim - r.sim_timeoffset_on, ...
+                ID_sim_b{b}, VGS_sim_b{b}, VDS_sim_b{b}, ...
+                T1+T2, ['Switch-On '  branches{b}], timewindow, lmarker, lbl);
+        end
     end
 end
 
@@ -384,46 +452,86 @@ end
 %% -------------------------------------------------------------------------
 
 function signals = read_ltspice_raw(raw_file)
-    fid = fopen(raw_file, 'r');
-    n_vars   = 0;
-    n_points = 0;
-    var_names = {};
-
-    while true
-        line = fgetl(fid);
-        if ~ischar(line), break; end
-        line = strtrim(line);
-        if startsWith(line, 'No. Variables:')
-            n_vars = sscanf(line, 'No. Variables: %d');
-        elseif startsWith(line, 'No. Points:')
-            n_points = sscanf(line, 'No. Points: %d');
-        elseif startsWith(line, 'Variables:')
-            for k = 1:n_vars
-                vline = fgetl(fid);
-                if ~ischar(vline)
-                    error('read_ltspice_raw: EOF in Variables block (expected %d vars, got %d)', n_vars, k-1);
-                end
-                vline = strtrim(vline);
-                parts = regexp(vline, '\t', 'split');
-                var_names{k} = strtrim(parts{2}); %#ok<AGROW>
-            end
-        elseif startsWith(line, 'Values:')
-            break;
-        end
-    end
-
-    % Values block: point index + var0 on first line, each remaining var on its own indented line
-    data = zeros(n_points, n_vars);
-    for i = 1:n_points
-        first = fgetl(fid);                          % "<idx>\t<val0>"
-        parts = regexp(first, '\t', 'split');
-        data(i, 1) = str2double(parts{end});
-        for j = 2:n_vars
-            data(i, j) = str2double(strtrim(fgetl(fid)));
-        end
-    end
+% Reads LTspice binary .raw files (transient analysis).
+% ADI LTspice writes headers in UTF-16 LE (2 bytes/char); detected by
+% checking whether byte 2 is 0x00. Binary data section follows 'Binary:\n'.
+% Per-point layout: 8-byte float64 (time) + (n_vars-1) x 4-byte float32.
+    fid        = fopen(raw_file, 'rb');
+    file_bytes = fread(fid, inf, 'uint8=>uint8');
     fclose(fid);
 
+    % Detect UTF-16 LE: every ASCII character has a null byte in position 2,4,...
+    is_utf16 = numel(file_bytes) > 3 && file_bytes(2) == 0 && file_bytes(4) == 0;
+
+    if is_utf16
+        % Decode by taking odd-indexed bytes (ASCII value of each UTF-16 char)
+        header_chars = char(file_bytes(1:2:end)');
+        bpos = strfind(header_chars, 'Binary:');
+        if isempty(bpos)
+            error('read_ltspice_raw: "Binary:" marker not found in UTF-16 header');
+        end
+        % Find \n after 'Binary:' in the decoded char stream
+        nl_rel = find(header_chars(bpos + 7 : end) == newline, 1, 'first');
+        % Map decoded-char position back to byte offset (each char = 2 bytes)
+        data_byte_start = (bpos + 7 + nl_rel - 1) * 2 + 1;
+        header_text = header_chars(1 : bpos - 1);
+    else
+        bpos = strfind(char(file_bytes'), 'Binary:');
+        if isempty(bpos)
+            error('read_ltspice_raw: "Binary:" marker not found in ASCII header');
+        end
+        nl_rel = find(file_bytes(bpos + 7 : end) == 10, 1, 'first');
+        data_byte_start = bpos + 7 + nl_rel;
+        header_text = char(file_bytes(1 : bpos - 1)');
+    end
+
+    % Parse header text for n_vars, n_points, variable names
+    lines = strsplit(header_text, {newline, char(13)});
+    n_vars = 0; n_points = 0; var_names = {};
+    reading_vars = false; var_count = 0;
+    for i = 1:numel(lines)
+        ln = strtrim(lines{i});
+        if isempty(ln), continue; end
+        if startsWith(ln, 'No. Variables:')
+            n_vars = sscanf(ln, 'No. Variables: %d');
+        elseif startsWith(ln, 'No. Points:')
+            n_points = sscanf(ln, 'No. Points: %d');
+        elseif startsWith(ln, 'Variables:')
+            reading_vars = true;
+        elseif reading_vars
+            var_count = var_count + 1;
+            parts = regexp(ln, '\t', 'split');
+            if numel(parts) >= 2
+                var_names{var_count} = strtrim(parts{2}); %#ok<AGROW>
+            end
+            if var_count >= n_vars
+                reading_vars = false;
+            end
+        end
+    end
+
+    % Bulk-read binary data section
+    data_bytes      = file_bytes(data_byte_start : end);
+    bytes_per_point = 8 + (n_vars - 1) * 4;
+    actual_points   = floor(numel(data_bytes) / bytes_per_point);
+    if actual_points ~= n_points
+        warning('read_ltspice_raw: header says %d points but binary data holds %d — using actual count', ...
+                n_points, actual_points);
+        n_points = actual_points;
+    end
+    data_bytes = data_bytes(1 : n_points * bytes_per_point);
+    raw_mat    = reshape(data_bytes, bytes_per_point, n_points);  % [bytes_per_point × n_points]
+
+    % time: first 8 bytes per point → float64
+    time_bytes = raw_mat(1:8, :);
+    time_vals  = typecast(time_bytes(:), 'double');       % [n_points × 1]
+
+    % signals: remaining (n_vars-1)*4 bytes per point → float32 → double
+    other_bytes = raw_mat(9:end, :);
+    other_flat  = typecast(other_bytes(:), 'single');                    % [(n_vars-1)*n_points × 1]
+    other_vals  = double(reshape(other_flat, n_vars - 1, n_points)');   % [n_points × (n_vars-1)]
+
+    data = [time_vals, other_vals];
     vals = cell(1, n_vars);
     for k = 1:n_vars
         vals{k} = data(:, k);
@@ -636,7 +744,7 @@ function ax = plot_vgs_compare(ax_in, t_orig, VGS1_orig, VGS2_orig, VGS3_orig, .
         ax = ax_in;
     end
 
-    mi = round(linspace(1, numel(t_ns_s), min(10, numel(t_ns_s))));
+    mi = round(linspace(1, numel(t_ns_s), min(100, numel(t_ns_s))));
     for m = 1:3
         plot(ax(m), t_ns_s, vgs_sim{m}(mk_sim), '--', 'Color', colors{m}, ...
              'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.5, 'DisplayName', ['Sim: ' sim_label]);
@@ -653,10 +761,19 @@ function ax = plot_ig_event(ax_in, t, I_G1, I_G2, I_G3, VGS1, VGS2, VGS3, ...
     t_ns     = (t(mask)         - t_start) * 1e9;
     t_ns_sim = (t_sim(mask_sim) - t_start) * 1e9;
 
+    % Gate charge: cumtrapz of I_G over event window.
+    % t_ns in ns, I_G in A  →  result in A·ns = nC.
+    QG1_emp = cumtrapz(t_ns, I_G1(mask));
+    QG2_emp = cumtrapz(t_ns, I_G2(mask));
+    QG3_emp = cumtrapz(t_ns, I_G3(mask));
+    QG1_sim = cumtrapz(t_ns_sim, IG1_sim(mask_sim));
+    QG2_sim = cumtrapz(t_ns_sim, IG2_sim(mask_sim));
+    QG3_sim = cumtrapz(t_ns_sim, IG3_sim(mask_sim));
+
     if isempty(ax_in)
-        figure('Name', ['Gate V/I - ' label], 'NumberTitle', 'off');
-        tl = tiledlayout(2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
-        title(tl, ['Gate V/I - ' label], 'FontWeight', 'bold');
+        figure('Name', ['Gate V/I/Q - ' label], 'NumberTitle', 'off');
+        tl = tiledlayout(3, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+        title(tl, ['Gate V/I/Q - ' label], 'FontWeight', 'bold');
         ax(1) = nexttile; hold on;
         plot(t_ns, VGS1(mask), '-', 'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'M1 empirical');
         plot(t_ns, VGS2(mask), '-', 'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'M2 empirical');
@@ -666,12 +783,17 @@ function ax = plot_ig_event(ax_in, t, I_G1, I_G2, I_G3, VGS1, VGS2, VGS3, ...
         plot(t_ns, I_G1(mask), '-', 'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'M1 empirical');
         plot(t_ns, I_G2(mask), '-', 'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'M2 empirical');
         plot(t_ns, I_G3(mask), '-', 'Color', colors{3}, 'LineWidth', 1.5, 'DisplayName', 'M3 empirical');
-        xlabel('Time (ns)'); ylabel('I_G (A)'); legend('Location', 'best'); xlim([0, timewindow]); grid on;
+        ylabel('I_G (A)'); legend('Location', 'best'); xlim([0, timewindow]); grid on;
+        ax(3) = nexttile; hold on;
+        plot(t_ns, QG1_emp, '-', 'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'M1 empirical');
+        plot(t_ns, QG2_emp, '-', 'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'M2 empirical');
+        plot(t_ns, QG3_emp, '-', 'Color', colors{3}, 'LineWidth', 1.5, 'DisplayName', 'M3 empirical');
+        xlabel('Time (ns)'); ylabel('Q_G (nC)'); legend('Location', 'best'); xlim([0, timewindow]); grid on;
     else
         ax = ax_in;
     end
 
-    mi = round(linspace(1, numel(t_ns_sim), min(10, numel(t_ns_sim))));
+    mi = round(linspace(1, numel(t_ns_sim), min(100, numel(t_ns_sim))));
     plot(ax(1), t_ns_sim, VGS1_sim(mask_sim), '--', 'Color', colors{1}, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M1 ' sim_label]);
     plot(ax(1), t_ns_sim, VGS2_sim(mask_sim), '--', 'Color', colors{2}, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M2 ' sim_label]);
     plot(ax(1), t_ns_sim, VGS3_sim(mask_sim), '--', 'Color', colors{3}, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M3 ' sim_label]);
@@ -680,10 +802,49 @@ function ax = plot_ig_event(ax_in, t, I_G1, I_G2, I_G3, VGS1, VGS2, VGS3, ...
     plot(ax(2), t_ns_sim, IG2_sim(mask_sim), '--', 'Color', colors{2}, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M2 ' sim_label]);
     plot(ax(2), t_ns_sim, IG3_sim(mask_sim), '--', 'Color', colors{3}, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M3 ' sim_label]);
     legend(ax(2), 'Location', 'best');
+    plot(ax(3), t_ns_sim, QG1_sim, '--', 'Color', colors{1}, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M1 ' sim_label]);
+    plot(ax(3), t_ns_sim, QG2_sim, '--', 'Color', colors{2}, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M2 ' sim_label]);
+    plot(ax(3), t_ns_sim, QG3_sim, '--', 'Color', colors{3}, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M3 ' sim_label]);
+    legend(ax(3), 'Location', 'best');
 end
 
-function ax = plot_event(ax_in, t, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, ...
-                         t_sim, ID1_sim, ID2_sim, ID3_sim, VGS1_sim, VGS2_sim, VGS3_sim, ...
+function ax = plot_event_branch(ax_in, t, I_D, VGS, VDS, branch_color, ...
+                               t_sim, ID_sim, VGS_sim, VDS_sim, ...
+                               t_event_us, label, timewindow, sim_lmarker, sim_label)
+    t_start  = t_event_us * 1e-6;
+    mask     = t     >= t_start & t     <= t_start + timewindow * 1e-9;
+    mask_sim = t_sim >= t_start & t_sim <= t_start + timewindow * 1e-9;
+    t_ns     = (t(mask)         - t_start) * 1e9;
+    t_ns_sim = (t_sim(mask_sim) - t_start) * 1e9;
+
+    if isempty(ax_in)
+        figure('Name', label, 'NumberTitle', 'off');
+        tl = tiledlayout(3, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+        title(tl, label, 'FontWeight', 'bold');
+        ax(1) = nexttile; hold on;
+        plot(t_ns, VGS(mask), '-', 'Color', branch_color, 'LineWidth', 1.5, 'DisplayName', 'empirical');
+        ylabel('V_{GS} (V)'); legend('Location', 'best'); xlim([0, timewindow]); grid on;
+        ax(2) = nexttile; hold on;
+        plot(t_ns, I_D(mask), '-', 'Color', branch_color, 'LineWidth', 1.5, 'DisplayName', 'empirical');
+        ylabel('Drain Current I_D (A)'); legend('Location', 'best'); xlim([0, timewindow]); grid on;
+        ax(3) = nexttile; hold on;
+        plot(t_ns, VDS(mask), '-', 'Color', branch_color, 'LineWidth', 1.5, 'DisplayName', 'empirical');
+        xlabel('Time (ns)'); ylabel('Drain Source Voltage (V)'); legend('Location', 'best'); xlim([0, timewindow]); grid on;
+    else
+        ax = ax_in;
+    end
+
+    mi = round(linspace(1, numel(t_ns_sim), min(100, numel(t_ns_sim))));
+    plot(ax(1), t_ns_sim, VGS_sim(mask_sim), '--', 'Color', branch_color, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', sim_label);
+    legend(ax(1), 'Location', 'best');
+    plot(ax(2), t_ns_sim, ID_sim(mask_sim),  '--', 'Color', branch_color, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', sim_label);
+    legend(ax(2), 'Location', 'best');
+    plot(ax(3), t_ns_sim, VDS_sim(mask_sim), '--', 'Color', branch_color, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', sim_label);
+    legend(ax(3), 'Location', 'best');
+end
+
+function ax = plot_event(ax_in, t, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, VDS1, VDS2, VDS3, ...
+                         t_sim, ID1_sim, ID2_sim, ID3_sim, VGS1_sim, VGS2_sim, VGS3_sim, VDS1_sim, VDS2_sim, VDS3_sim, ...
                          t_event_us, label, colors, timewindow, sim_lmarker, sim_label)
     t_start  = t_event_us * 1e-6;
     mask     = t     >= t_start & t     <= t_start + timewindow * 1e-9;
@@ -693,7 +854,7 @@ function ax = plot_event(ax_in, t, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, ...
 
     if isempty(ax_in)
         figure('Name', label, 'NumberTitle', 'off');
-        tl = tiledlayout(2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+        tl = tiledlayout(3, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
         title(tl, label, 'FontWeight', 'bold');
         ax(1) = nexttile; hold on;
         plot(t_ns, VGS1(mask), '-', 'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'M1 empirical');
@@ -704,12 +865,17 @@ function ax = plot_event(ax_in, t, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, ...
         plot(t_ns, I_D1(mask), '-', 'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'M1 empirical');
         plot(t_ns, I_D2(mask), '-', 'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'M2 empirical');
         plot(t_ns, I_D3(mask), '-', 'Color', colors{3}, 'LineWidth', 1.5, 'DisplayName', 'M3 empirical');
-        xlabel('Time (ns)'); ylabel('Drain Current I_D (A)'); legend('Location', 'best'); xlim([0, timewindow]); grid on;
+        ylabel('Drain Current I_D (A)'); legend('Location', 'best'); xlim([0, timewindow]); grid on;
+        ax(3) = nexttile; hold on;
+        plot(t_ns, VDS1(mask), '-', 'Color', colors{1}, 'LineWidth', 1.5, 'DisplayName', 'M1 empirical');
+        plot(t_ns, VDS2(mask), '-', 'Color', colors{2}, 'LineWidth', 1.5, 'DisplayName', 'M2 empirical');
+        plot(t_ns, VDS3(mask), '-', 'Color', colors{3}, 'LineWidth', 1.5, 'DisplayName', 'M3 empirical');
+        xlabel('Time (ns)'); ylabel('Drain Source Voltage (V)'); legend('Location', 'best'); xlim([0, timewindow]); grid on;
     else
         ax = ax_in;
     end
 
-    mi = round(linspace(1, numel(t_ns_sim), min(10, numel(t_ns_sim))));
+    mi = round(linspace(1, numel(t_ns_sim), min(100, numel(t_ns_sim))));
     plot(ax(1), t_ns_sim, VGS1_sim(mask_sim), '--', 'Color', colors{1}, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M1 ' sim_label]);
     plot(ax(1), t_ns_sim, VGS2_sim(mask_sim), '--', 'Color', colors{2}, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M2 ' sim_label]);
     plot(ax(1), t_ns_sim, VGS3_sim(mask_sim), '--', 'Color', colors{3}, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M3 ' sim_label]);
@@ -718,6 +884,10 @@ function ax = plot_event(ax_in, t, I_D1, I_D2, I_D3, VGS1, VGS2, VGS3, ...
     plot(ax(2), t_ns_sim, ID2_sim(mask_sim), '--', 'Color', colors{2}, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M2 ' sim_label]);
     plot(ax(2), t_ns_sim, ID3_sim(mask_sim), '--', 'Color', colors{3}, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M3 ' sim_label]);
     legend(ax(2), 'Location', 'best');
+    plot(ax(3), t_ns_sim, VDS1_sim(mask_sim), '--', 'Color', colors{1}, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M1 ' sim_label]);
+    plot(ax(3), t_ns_sim, VDS2_sim(mask_sim), '--', 'Color', colors{2}, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M2 ' sim_label]);
+    plot(ax(3), t_ns_sim, VDS3_sim(mask_sim), '--', 'Color', colors{3}, 'Marker', sim_lmarker, 'MarkerIndices', mi, 'LineWidth', 1.2, 'DisplayName', ['M3 ' sim_label]);
+    legend(ax(3), 'Location', 'best');
 end
 
 function lbl = make_sweep_label(sweep_results, k)
